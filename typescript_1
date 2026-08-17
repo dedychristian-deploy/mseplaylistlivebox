@@ -1,0 +1,89 @@
+let ws: WebSocket;
+
+ws = new WebSocket("ws://127.0.0.1:6900");
+
+ws.onopen = () => {
+    console.log("Viz Engine connected");
+};
+
+ws.onmessage = (event) => {
+    console.log("Viz response:", event.data);
+};
+
+ws.onerror = (error) => {
+    console.log("WebSocket error:", error);
+};
+
+ws.onclose = (event) => {
+    console.log("Viz Engine disconnected");
+    console.log("Code:", event.code);
+    console.log("Reason:", event.reason);
+};
+
+
+function sendVizCommand() {
+
+    const command = "MAIN_SCENE*STAGE*DIRECTOR*Default START";
+
+    if (ws.readyState === WebSocket.OPEN) {
+        console.log("Sending:", command);
+        ws.send(command);
+    } else {
+        console.log("WebSocket not connected");
+    }
+}
+
+
+function getPosition() {
+
+    if (ws.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket not connected");
+        return;
+    }
+
+    ws.send(
+        "MAIN_SCENE*TREE*$BOX*TRANSFORMATION*POSITION GET"
+    );
+}
+
+
+function setPosition() {
+
+    if (ws.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket not connected");
+        return;
+    }
+
+    ws.send(
+        "MAIN_SCENE*TREE*$BOX*TRANSFORMATION*POSITION SET 100 0 0"
+    );
+}
+
+
+function setBoxIndex() {
+
+    if (ws.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket not connected");
+        return;
+    }
+
+const data = {
+    boxCount: 0,
+    boxOrder: ["BOX_01", "BOX_03", "BOX_02", "BOX_04"]
+};
+
+data.boxOrder.forEach((boxName, index) => {
+    ws.send(
+        `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxCount} ${boxName} ${index}`
+    );
+});
+}
+
+
+vizrt.onClick = (name: string) => {
+
+    if (name === "updatebutton") {
+        setBoxIndex();
+    }
+
+};
