@@ -1,42 +1,81 @@
+let ws: WebSocket;
 
-sub set_index(boxType as integer, boxName as String, targetIndex as Integer)
-'sub set_index(boxType as String, boxName as String, targetIndex as Integer)
+ws = new WebSocket("ws://127.0.0.1:6900");
 
-    dim box as Container
-    dim c as container = scene.findContainer("UPDATEBOX").getChildContainerByIndex(boxType)
-    'dim c as container = scene.findContainer(boxType)
-    dim target as Container
-    dim currentIndex as Integer
+ws.onopen = () => {
+    console.log("Viz Engine connected");
+};
 
-    box = c.FindSubContainer(boxName)
+ws.onmessage = (event) => {
+    console.log("Viz response:", event.data);
+};
 
-    if not box.Valid then
-        exit sub
-    end if
+ws.onerror = (error) => {
+    console.log("WebSocket error:", error);
+};
 
-    currentIndex = box.GetLocalIndex()
-
-    if currentIndex = targetIndex then
-        exit sub
-    end if
-
-    target = c.GetChildContainerByIndex(targetIndex)
-
-    if currentIndex > targetIndex then
-        box.MoveTo(target, TL_PREVIOUS)
-    else
-        box.MoveTo(target, TL_NEXT)
-    end if
-    
-    Scene.UpdateSceneTree()
-
-end sub
-sub OnInitParameters()
-registerPushButton("push","push",0)
-end sub
+ws.onclose = (event) => {
+    console.log("Viz Engine disconnected");
+    console.log("Code:", event.code);
+    console.log("Reason:", event.reason);
+};
 
 
-sub OnExecAction(buttonId As Integer)
-set_index(0,"BOX_01",3)
-this.Update()
-end sub
+function sendVizCommand() {
+
+    const command = "MAIN_SCENE*STAGE*DIRECTOR*Default START";
+
+    if (ws.readyState === WebSocket.OPEN) {
+        console.log("Sending:", command);
+        ws.send(command);
+    } else {
+        console.log("WebSocket not connected");
+    }
+}
+
+
+function setBoxIndex() {
+
+    if (ws.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket not connected");
+        return;
+    }
+
+    const data = {
+        "boxType": 4,
+        "boxTypeName": "LIVEBOX4",
+        "boxOrder": [
+            {
+                "box": "BOX_01",
+                "input": 0
+            },
+            {
+                "box": "BOX_02",
+                "input": 2
+            },
+            {
+                "box": "BOX_03",
+                "input": 3
+            }
+        ]
+    };
+
+ws.send(
+    `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE reset_active ${data.boxType}`
+);
+
+data.boxOrder.forEach((item: any) => {
+    ws.send(
+        `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`
+    );
+});
+}
+
+
+vizrt.onClick = (name: string) => {
+
+    if (name === "updatebutton") {
+        setBoxIndex();
+    }
+
+};
