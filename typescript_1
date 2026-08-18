@@ -60,11 +60,15 @@ function setBoxIndex() {
         ]
     };
 
-    data.boxOrder.forEach((item) => {
-        ws.send(
-            `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`
-        );
-    });
+ws.send(
+    `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE reset_active ${data.boxType}`
+);
+
+data.boxOrder.forEach((item: any) => {
+    ws.send(
+        `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`
+    );
+});
 }
 
 
