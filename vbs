@@ -1,81 +1,48 @@
-let ws: WebSocket;
+sub reset_active(boxType as Integer)
 
-ws = new WebSocket("ws://127.0.0.1:6900");
+    dim c as Container = scene.findContainer("UPDATEBOX").getChildContainerByIndex(boxType)
+    dim box_active as Container
+    dim i as Integer
 
-ws.onopen = () => {
-    console.log("Viz Engine connected");
-};
+    for i = 0 to c.ChildContainerCount - 1
+        box_active = c.GetChildContainerByIndex(i)
+        box_active.Active = false
+    next
 
-ws.onmessage = (event) => {
-    console.log("Viz response:", event.data);
-};
+    Scene.UpdateSceneTree()
 
-ws.onerror = (error) => {
-    console.log("WebSocket error:", error);
-};
-
-ws.onclose = (event) => {
-    console.log("Viz Engine disconnected");
-    console.log("Code:", event.code);
-    console.log("Reason:", event.reason);
-};
+end sub
 
 
-function sendVizCommand() {
+sub set_index(boxType as Integer, boxName as String, targetIndex as Integer)
 
-    const command = "MAIN_SCENE*STAGE*DIRECTOR*Default START";
+    dim box as Container
+    dim c as Container = scene.findContainer("UPDATEBOX").getChildContainerByIndex(boxType)
+    dim target as Container
+    dim currentIndex as Integer
 
-    if (ws.readyState === WebSocket.OPEN) {
-        console.log("Sending:", command);
-        ws.send(command);
-    } else {
-        console.log("WebSocket not connected");
-    }
-}
+    box = c.FindSubContainer(boxName)
 
+    if not box.Valid then
+        exit sub
+    end if
 
-function setBoxIndex() {
+    box.Active = true
 
-    if (ws.readyState !== WebSocket.OPEN) {
-        console.log("WebSocket not connected");
-        return;
-    }
+    currentIndex = box.GetLocalIndex()
 
-    const data = {
-        "boxType": 4,
-        "boxTypeName": "LIVEBOX4",
-        "boxOrder": [
-            {
-                "box": "BOX_01",
-                "input": 0
-            },
-            {
-                "box": "BOX_02",
-                "input": 2
-            },
-            {
-                "box": "BOX_03",
-                "input": 3
-            }
-        ]
-    };
+    if currentIndex = targetIndex then
+        exit sub
+    end if
 
-ws.send(
-    `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE reset_active ${data.boxType}`
-);
+    target = c.GetChildContainerByIndex(targetIndex)
 
-data.boxOrder.forEach((item: any) => {
-    ws.send(
-        `MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`
-    );
-});
-}
+    if currentIndex > targetIndex then
+        box.MoveTo(target, TL_PREVIOUS)
+    else
+        box.MoveTo(target, TL_NEXT)
+    end if
 
+    Scene.UpdateSceneTree()
 
-vizrt.onClick = (name: string) => {
-
-    if (name === "updatebutton") {
-        setBoxIndex();
-    }
-
-};
+end sub
