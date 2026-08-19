@@ -1,0 +1,855 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            background: transparent;
+        }
+
+        .container {
+            position: fixed;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+
+            height: 33vh;
+
+            display: flex;
+            gap: 5px;
+        }
+
+        .panel {
+            flex: 1;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+
+            display: flex;
+            flex-direction: column;
+
+            min-height: 0;
+            background: white;
+        }
+
+        .panel h3 {
+            margin: 0;
+            padding: 12px;
+            background: #eee;
+            flex-shrink: 0;
+        }
+
+        #playlistList,
+        #elementList {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .item:hover {
+            background: #f3f3f3;
+        }
+
+        .item.selected {
+            background: #ddd;
+        }
+
+        .top-area {
+            position: fixed;
+            left: 20px;
+            right: 20px;
+            top: 20px;
+            bottom: calc(33vh + 45px);
+            display: grid;
+            grid-template-columns: 1fr 90px 1fr;
+            gap: 5px;
+            min-height: 0;
+        }
+
+        .preview-panel,
+        .onair-panel {
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .top-title {
+            margin: 0;
+            padding: 12px;
+            background: #eee;
+            font-size: 1.17em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .preview-content,
+        .onair-content {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .control-panel {
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .control-panel button {
+            width: 100%;
+            padding: 12px 4px;
+            cursor: pointer;
+        }
+
+        .preview-panel {
+            position: relative;
+        }
+
+        .preview-loading {
+            position: absolute;
+            inset: 45px 0 0 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 10;
+        }
+
+        .preview-loading.show {
+            display: flex;
+        }
+
+        .loading-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 4px solid #ddd;
+            border-top-color: #555;
+            border-radius: 50%;
+            animation: previewSpin 0.8s linear infinite;
+        }
+
+        #onAirPreview {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header button {
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+
+        @keyframes previewSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="top-area">
+        <div class="preview-panel">
+            <div class="top-title">Layout Preview</div>
+
+            <div id="previewLoading" class="preview-loading">
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    <div>Loading preview...</div>
+                </div>
+            </div>
+
+            <iframe id="layoutPreview" class="preview-content" frameborder="0"></iframe>
+        </div>
+
+        <div class="control-panel">
+            <button id="sendToVizButton" type="button" onclick="setBoxIndex()" disabled>SEND TO VIZ</button>
+            <button id="takeButton" type="button" onclick="takeElement()" disabled>TAKE</button>
+            <button id="contButton" type="button" disabled>CONT</button>
+            <button id="outButton" type="button" onclick="takeOutElement()" disabled>OUT</button>
+            <button id="cleanupButton" type="button" onclick="cleanupPlaylist()">CLEAN UP</button>
+        </div>
+
+        <div class="onair-panel">
+            <div class="top-title">On Air Preview</div>
+            <iframe id="onAirPreview" class="onair-content" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <div class="container" style="background: white;">
+        <div class="panel">
+            <h3 class="panel-header">
+                <span>Playlists</span>
+                <button type="button" onclick="refreshMSE()">REFRESH</button>
+            </h3>
+            <div id="playlistList"></div>
+        </div>
+
+        <div class="panel">
+            <h3>Elements</h3>
+            <div id="elementList">Select playlist</div>
+        </div>
+    </div>
+
+    <script>
+        const atom = "http://www.w3.org/2005/Atom";
+        let selectedElementId = null;
+        let selectedElementUrl = null;
+        let selectedPlaylistUuid = null;
+        let currentLayoutData = null;
+        let onAirLayoutData = null;
+
+        let layoutEdited = false;
+
+        const elementCache = new Map();
+        //setbox from json
+        const boxLayouts = [
+            { boxType: 0, boxTypeName: "1BOX", count: 1 },
+            { boxType: 1, boxTypeName: "2BOX", count: 2 },
+            { boxType: 2, boxTypeName: "2BOX_BIG_SMALL", count: 2 },
+            { boxType: 3, boxTypeName: "3BOX", count: 3 },
+            { boxType: 4, boxTypeName: "3BOX_SP", count: 3 },
+            { boxType: 5, boxTypeName: "4BOX", count: 4 },
+            { boxType: 6, boxTypeName: "5BOX", count: 5 },
+            { boxType: 7, boxTypeName: "6BOX", count: 6 },
+            { boxType: 8, boxTypeName: "7BOX", count: 7 },
+            { boxType: 9, boxTypeName: "7BOX_CENTER", count: 7 },
+            { boxType: 10, boxTypeName: "8BOX", count: 8 },
+            { boxType: 11, boxTypeName: "9BOX", count: 9 },
+            { boxType: 12, boxTypeName: "10BOX", count: 10 },
+            { boxType: 13, boxTypeName: "12BOX", count: 12 },
+            { boxType: 14, boxTypeName: "1BOX_SP", count: 1 },
+            { boxType: 15, boxTypeName: "1BOX_SP_V", count: 1 },
+            { boxType: 16, boxTypeName: "2BOX_SP_V", count: 2 },
+            { boxType: 17, boxTypeName: "3BOX_SP_V", count: 3 },
+            { boxType: 18, boxTypeName: "4BOX_SP_V", count: 4 }
+        ];
+
+        function extractLayoutFromPayload(payload) {
+            const xml = new DOMParser().parseFromString(
+                payload,
+                "application/xml"
+            );
+
+            const fields = [...xml.getElementsByTagName("field")];
+
+            const layoutField = fields.find(
+                field => field.getAttribute("name") === "setBoxes"
+            );
+
+            if (!layoutField) {
+                console.error("SetBoxes field not found");
+                return null;
+            }
+
+            const layoutIndex = Number(
+                layoutField.getElementsByTagName("value")[0]?.textContent
+            );
+
+            const layout = boxLayouts[layoutIndex];
+
+            if (!layout) {
+                console.error("Invalid layout index:", layoutIndex);
+                return null;
+            }
+
+            const boxOrder = [];
+
+            for (let i = 0; i < layout.count; i++) {
+                boxOrder.push({
+                    box: `BOX_${String(i + 1).padStart(2, "0")}`,
+                    input: i
+                });
+            }
+
+            return {
+                boxType: layout.boxType,
+                boxTypeName: layout.boxTypeName,
+                boxOrder: boxOrder
+            };
+        }
+        //////
+        //buttton
+        function updateActionButtons() {
+            const sendButton = document.getElementById("sendToVizButton");
+            const takeButton = document.getElementById("takeButton");
+            const contButton = document.getElementById("contButton");
+            const outButton = document.getElementById("outButton");
+            //const cleanupButton = document.getElementById("cleanupButton");
+
+            const hasElement = selectedElementUrl !== null;
+
+            if (!hasElement) {
+                sendButton.disabled = true;
+                takeButton.disabled = true;
+                contButton.disabled = true;
+                outButton.disabled = true;
+                //cleanupButton.disabled = true;
+                return;
+            }
+
+            sendButton.disabled = !layoutEdited;
+            takeButton.disabled = layoutEdited;
+
+            contButton.disabled = false;
+            outButton.disabled = false;
+            //cleanupButton.disabled = false;
+        }
+        //onair preview
+        ///
+
+        function showLayoutPreview(data) {
+            const preview = document.getElementById("layoutPreview");
+            const loading = document.getElementById("previewLoading");
+
+            loading.classList.add("show");
+
+            preview.onload = () => {
+
+                preview.contentWindow.postMessage(
+                    data,
+                    "*"
+                );
+
+                loading.classList.remove("show");
+            };
+
+            preview.src =
+                `/layouts/${data.boxTypeName}.html`;
+        }
+        //note2
+        function showOnAirPreview(data) {
+
+            const preview = document.getElementById("onAirPreview");
+
+            preview.onload = () => {
+                preview.contentWindow.postMessage(
+                    {
+                        ...data,
+                        previewMode: "onair"
+                    },
+                    "*"
+                );
+            };
+
+            preview.src = `/layouts/${data.boxTypeName}.html`;
+        }
+        //note2
+        window.addEventListener("message", event => {
+
+            const data = event.data;
+
+            if (data.action !== "deleteBox") {
+                return;
+            }
+
+            console.log("DELETE:", data.boxName);
+
+            layoutEdited = true;
+            updateActionButtons();
+
+            currentLayoutData.boxOrder =
+                currentLayoutData.boxOrder.filter(
+                    item => item.box !== data.boxName
+                );
+
+            currentLayoutData.boxOrder.forEach((item, index) => {
+                item.box = `BOX_${String(index + 1).padStart(2, "0")}`;
+            });
+
+            const remainingBoxes = currentLayoutData.boxOrder.length;
+
+            const newLayout = boxLayouts.find(item =>
+                item.boxTypeName === `${remainingBoxes}BOX`
+            );
+
+            if (newLayout) {
+                currentLayoutData.boxType = newLayout.boxType;
+            }
+
+            console.log(
+                "NEW STATE:",
+                currentLayoutData
+            );
+
+            showLayoutPreview(currentLayoutData);
+        });
+
+
+        //====
+        function sendVizCommand(command) {
+            const host = "127.0.0.1";
+            const port = 6100;
+
+            fetch(
+                `/vizsend?host=${host}&port=${port}&cmd=${encodeURIComponent(command)}`
+            )
+                .then(response => response.json())
+                .then(result => console.log("Viz response:", result))
+                .catch(error => console.log("Viz error:", error));
+        }
+
+
+        function setBoxIndex() {
+
+            const data = currentLayoutData;
+            //note1
+            const targetLayout = boxLayouts.find(
+                item => item.boxType === data.boxType
+            );
+
+            onAirLayoutData = {
+                boxType: data.boxType,
+                boxTypeName: targetLayout.boxTypeName,
+                boxOrder: data.boxOrder.map(item => ({
+                    box: item.box,
+                    input: item.input
+                }))
+            };
+
+            console.log("ON AIR JSON:", onAirLayoutData);
+            //note1
+            showOnAirPreview(onAirLayoutData);
+            sendVizCommand(
+                `-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE reset_active ${data.boxType}`
+            );
+
+            data.boxOrder.forEach((item) => {
+
+                sendVizCommand(
+                    `-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`
+                );
+
+            });
+        }
+        ///
+        // ==========================================
+        // LOAD PLAYLISTS
+        // ==========================================
+
+        async function loadPlaylists() {
+            try {
+                const response = await fetch("/api/playlists", {
+                    headers: {
+                        Accept: "application/atom+xml",
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+
+                const text = await response.text();
+
+                const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                const list = document.getElementById("playlistList");
+
+                list.innerHTML = "";
+
+                for (const entry of entries) {
+                    const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled";
+
+                    const links = entry.getElementsByTagNameNS(atom, "link");
+
+                    let elementCollectionUrl = null;
+                    let activationUrl = null;
+
+                    for (const link of links) {
+                        const rel = link.getAttribute("rel");
+
+                        const type = link.getAttribute("type");
+
+                        if (rel === "alternate" && type === "application/atom+xml;type=feed") {
+                            elementCollectionUrl = link.getAttribute("href");
+                        }
+
+                        if (rel === "related" && type === "application/vnd.vizrt.playlistactivation+xml") {
+                            activationUrl = link.getAttribute("href");
+                        }
+                    }
+
+                    if (!elementCollectionUrl) {
+                        continue;
+                    }
+
+                    const item = document.createElement("div");
+
+                    item.className = "item";
+
+                    item.textContent = title;
+
+                    item.onclick = () => {
+                        document
+                            .querySelectorAll("#playlistList .item")
+                            .forEach((x) => x.classList.remove("selected"));
+
+                        item.classList.add("selected");
+                        ///
+                        //layoutEdited = false;
+                        //updateActionButtons();
+                        ////
+                        const match = activationUrl?.match(/playlists\/(.+)$/);
+                        selectedPlaylistUuid = match ? match[1] : null;
+
+                        activatePlaylist(activationUrl);
+
+                        loadElements(elementCollectionUrl);
+                    };
+
+                    list.appendChild(item);
+                }
+            } catch (error) {
+                console.error("LOAD PLAYLIST ERROR:", error);
+            }
+        }
+
+        // ==========================================
+        // ACTIVATE PLAYLIST
+        // ==========================================
+
+        async function activatePlaylist(activationUrl) {
+            if (!activationUrl) {
+                console.error("Activation URL not found");
+                return;
+            }
+
+            const match = activationUrl.match(/playlists\/(.+)$/);
+
+            if (!match) {
+                console.error("Cannot get playlist UUID:", activationUrl);
+                return;
+            }
+
+            const uuid = match[1];
+
+            console.log("ACTIVATING:", uuid);
+
+            try {
+                const response = await fetch(`/api/activate/${encodeURIComponent(uuid)}`, {
+                    method: "PUT",
+                });
+
+                const result = await response.text();
+
+                console.log("ACTIVATION STATUS:", response.status);
+                console.log("ACTIVATION RESPONSE:", result);
+
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}: ${result}`);
+                }
+
+                console.log("PLAYLIST ACTIVATED");
+            } catch (error) {
+                console.error("ACTIVATE PLAYLIST ERROR:", error);
+            }
+        }
+
+        // ==========================================
+        // LOAD ELEMENTS
+        // ==========================================
+
+        async function loadElements(url) {
+            const list = document.getElementById("elementList");
+
+            list.innerHTML = "Loading...";
+
+            try {
+                const msePath = new URL(url).pathname + new URL(url).search;
+
+                const response = await fetch(`/api/elements?path=${encodeURIComponent(msePath)}`);
+
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+
+                const text = await response.text();
+
+                const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                list.innerHTML = "";
+
+                for (const entry of entries) {
+                    const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled Element";
+
+                    const id = entry.getElementsByTagNameNS(atom, "id")[0]?.textContent || "";
+
+                    const links = entry.getElementsByTagNameNS(atom, "link");
+
+                    let elementUrl = null;
+
+                    for (const link of links) {
+                        if (link.getAttribute("rel") === "alternate") {
+                            elementUrl = link.getAttribute("href");
+
+                            break;
+                        }
+                    }
+
+                    if (!elementUrl) {
+                        continue;
+                    }
+
+                    const item = document.createElement("div");
+
+                    item.className = "item";
+
+                    item.textContent = title;
+                    //====================================================================
+                    item.onclick = async () => {
+                        document
+                            .querySelectorAll("#elementList .item")
+                            .forEach((x) => x.classList.remove("selected"));
+
+                        item.classList.add("selected");
+
+                        console.log("ELEMENT:", title);
+                        console.log("ATOM ID:", id);
+                        selectedElementUrl = elementUrl;
+                        console.log("ELEMENT URL:", selectedElementUrl);
+                        selectedElementId = id;
+                        console.log("ID:", selectedElementId);
+
+                        /*
+                        getElementPayload(elementUrl);
+                        //document.getElementById("layoutPreview").src = "/layouts/layout_1.html";
+                        //send json from payload extraction
+currentLayoutData = {
+    boxType: 4,
+    boxTypeName: "LIVEBOX4",
+    boxOrder: [
+        { box: "BOX_01", input: 0 },
+        { box: "BOX_02", input: 1 },
+        { box: "BOX_03", input: 2 },
+        { box: "BOX_04", input: 3 }
+    ]
+};
+
+                        const preview =
+                            document.getElementById("layoutPreview");
+
+                        preview.onload = () => {
+                            preview.contentWindow.postMessage(
+                                currentLayoutData,
+                                "*"
+                            );
+                        };
+
+                        preview.src =
+                            `/layouts/${currentLayoutData.boxTypeName}.html`;
+                    
+                    */
+                        const loading = document.getElementById("previewLoading");
+                        loading.classList.add("show");
+                        //news
+                        const payload = await getElementPayload(elementUrl);
+
+                        if (!payload) {
+                            console.error("NO ELEMENT PAYLOAD");
+                            return;
+                        }
+
+                        currentLayoutData = extractLayoutFromPayload(payload);
+
+                        if (!currentLayoutData) {
+                            console.error("CANNOT EXTRACT LAYOUT");
+                            return;
+                        }
+
+                        /////
+                        layoutEdited = false;
+                        updateActionButtons();
+                        ///
+                        console.log("LAYOUT JSON:", currentLayoutData);
+
+                        showLayoutPreview(currentLayoutData);
+
+                    };
+
+                    list.appendChild(item);
+                }
+            } catch (error) {
+                console.error("LOAD ELEMENTS ERROR:", error);
+
+                list.innerHTML = "Error loading elements";
+            }
+        }
+
+        // ==========================================
+        // GET ELEMENT PAYLOAD
+        // ==========================================
+
+        async function getElementPayload(url) {
+            if (elementCache.has(url)) {
+                console.log("FROM CACHE");
+                console.log("ELEMENT PAYLOAD:", elementCache.get(url));
+                return elementCache.get(url);
+            }
+
+            const start = performance.now();
+
+            try {
+                const response = await fetch(`/api/element?url=${encodeURIComponent(url)}`);
+
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+
+                const payload = await response.text();
+
+                elementCache.set(url, payload);
+
+                console.log("MSE RESPONSE:", Math.round(performance.now() - start), "ms");
+
+                console.log("ELEMENT PAYLOAD:", payload);
+
+                return payload;
+            } catch (error) {
+                console.error("GET ELEMENT ERROR:", error);
+                return null;
+            }
+        }
+
+        // ==========================================
+        // CLEANUP PLAYLIST
+        // ==========================================
+        async function cleanupPlaylist() {
+            if (!selectedPlaylistUuid) {
+                console.log("NO PLAYLIST SELECTED");
+                return;
+            }
+
+            const response = await fetch(`/api/cleanup/${encodeURIComponent(selectedPlaylistUuid)}`, {
+                method: "POST"
+            });
+
+            const result = await response.text();
+
+            console.log("CLEANUP STATUS:", response.status);
+            console.log("CLEANUP RESPONSE:", result);
+        }
+
+        // ==========================================
+        // TAKE
+        // ==========================================
+        async function takeElement() {
+
+            if (!selectedElementUrl) {
+                console.log("NO ELEMENT SELECTED");
+                return;
+            }
+
+            const response = await fetch("/api/take", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
+                },
+                body: selectedElementUrl
+            });
+
+            const result = await response.text();
+
+            console.log("TAKE STATUS:", response.status);
+            console.log("TAKE RESPONSE:", result);
+        }
+
+        // ==========================================
+        // TAKE
+        // ==========================================
+        async function takeOutElement() {
+
+            if (!selectedElementUrl) {
+                console.log("NO ELEMENT SELECTED");
+                return;
+            }
+
+            const response = await fetch("/api/out", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
+                },
+                body: selectedElementUrl
+            });
+
+            const result = await response.text();
+
+            console.log("TAKE STATUS:", response.status);
+            console.log("TAKE RESPONSE:", result);
+        }
+
+        //erefresh mse
+
+        async function refreshMSE() {
+    console.log("REFRESHING MSE...");
+
+    elementCache.clear();
+    await loadPlaylists();
+
+    console.log("MSE REFRESHED");
+}
+
+        async function refreshMSE_() {
+            console.log("REFRESHING MSE...");
+
+            elementCache.clear();
+
+            selectedElementId = null;
+            selectedElementUrl = null;
+            selectedPlaylistUuid = null;
+            currentLayoutData = null;
+            onAirLayoutData = null;
+            layoutEdited = false;
+
+            document.getElementById("elementList").innerHTML = "Select playlist";
+            document.getElementById("layoutPreview").src = "";
+            document.getElementById("onAirPreview").src = "";
+
+            updateActionButtons();
+
+            await loadPlaylists();
+
+            console.log("MSE REFRESHED");
+        }
+        // ==========================================
+        // START
+        // ==========================================
+
+        loadPlaylists();
+        updateActionButtons();
+    </script>
+</body>
+
+</html>
