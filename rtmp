@@ -4,6 +4,9 @@ Jalankan:
 
 mediamtx.exe
 
+instal:
+
+winget install Gyan.FFmpeg
 Yang kita pakai:
 
 RTMP IN       :1935
