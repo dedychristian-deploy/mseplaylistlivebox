@@ -1,0 +1,72 @@
+1. Jalankan MediaMTX
+
+Jalankan:
+
+mediamtx.exe
+
+Yang kita pakai:
+
+RTMP IN       :1935
+WebRTC HTTP   :8889
+WebRTC ICE    :8189
+
+Flow-nya:
+
+SOURCE
+   ↓
+ RTMP
+   ↓
+MediaMTX :1935
+   ↓
+ WebRTC
+   ↓
+HTML / Browser :8889
+2. MP4 → RTMP AUX1
+
+Contoh file:
+
+D:\video\ORI.mp4
+
+Command:
+
+ffmpeg -re -stream_loop -1 -i "D:\video\ORI.mp4" -c:v libx264 -preset ultrafast -tune zerolatency -an -f flv rtmp://127.0.0.1:1935/aux1
+
+Hasil:
+
+ORI.mp4 → RTMP → aux1
+
+Preview:
+
+AUX 1 WebRTC Preview
+
+3. MP4 kedua → AUX2/AUX3
+
+Tinggal beda nama path:
+
+ffmpeg -re -stream_loop -1 -i "D:\video\VIDEO2.mp4" -c:v libx264 -preset ultrafast -tune zerolatency -an -f flv rtmp://127.0.0.1:1935/aux2
+
+Atau:
+
+ffmpeg -re -stream_loop -1 -i "D:\video\VIDEO3.mp4" -c:v libx264 -preset ultrafast -tune zerolatency -an -f flv rtmp://127.0.0.1:1935/aux3
+
+
+
+4. Webcam → RTMP
+
+Cari dulu nama webcam:
+
+ffmpeg -list_devices true -f dshow -i dummy
+
+Di laptop lo ketemu:
+
+Integrated Camera
+
+Kirim webcam misalnya ke AUX2:
+
+ffmpeg -f dshow -i video="Integrated Camera" -c:v libx264 -preset ultrafast -tune zerolatency -an -f flv rtmp://127.0.0.1:1935/aux2
+
+Jadi bisa:
+
+ORI.mp4            → aux1
+Integrated Camera  → aux2
+Video lain         → aux3
