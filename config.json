@@ -1,0 +1,14 @@
+{
+  "mse": {
+    "host": "127.0.0.1",
+    "port": 8580,
+    "profile": "LIVEBOXES"
+  },
+  "engine": {
+    "host": "127.0.0.1",
+    "port": 6100
+  },
+  "playlist": {
+    "playlistid": "{F392284C-11EA-4D58-B47A-42B1BEDA2B1D}"
+  }
+}

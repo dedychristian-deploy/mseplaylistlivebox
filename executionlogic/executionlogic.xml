@@ -1,0 +1,40 @@
+<env name="http_post">
+    <http_request>
+        <method>POST</method>
+
+        <uri>http://127.0.0.1:9090/preview</uri>
+
+        <headers>
+            <field>
+                <name>Content-Type</name>
+                <value>application/vnd.vizrt.payload+xml</value>
+            </field>
+        </headers>
+
+        <body>
+            <![CDATA[<payload>
+                <field name="setBoxes">
+                    <value>]]>
+            <ref><var>element</var>/data/setBoxes</ref>
+            <![CDATA[</value>
+                </field>
+                <field name="elementId">
+                    <value>]]>
+            <var>element</var>
+            <![CDATA[</value>
+                </field>
+            </payload>]]>
+        </body>
+
+        <on_response>
+            <log>PREVIEW POST RESPONSE:</log>
+            <log><var>body</var></log>
+        </on_response>
+
+        <on_failure>
+            <log>PREVIEW POST FAILED:</log>
+            <log><var>reason</var></log>
+        </on_failure>
+
+    </http_request>
+</env>

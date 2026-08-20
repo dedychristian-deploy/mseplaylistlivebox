@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.21.2",
+    "fs": "^0.0.1-security",
+    "http": "^0.0.1-security",
+    "net": "^1.0.2",
+    "os": "^0.1.2",
+    "path": "^0.12.7"
+  }
+}

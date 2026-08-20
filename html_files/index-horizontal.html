@@ -1,0 +1,2252 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+
+    <style>
+        :root {
+            --bg: #111417;
+            --panel: #181c20;
+            --panel-2: #20252a;
+            --surface: #292e33;
+            --surface-hover: #32383e;
+            --border: #343a40;
+            --text: #e7eaed;
+            --muted: #8f979f;
+            --accent: #3b82c4;
+            --onair: #d84a4a;
+            --take: #b63232;
+            --take-hover: #cf3d3d;
+            --ok: #54a66b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .top-area {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            top: 12px;
+            height: 64vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr);
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            min-height: 0;
+        }
+
+        .preview-panel,
+        .onair-panel {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .top-title,
+        .sources-title {
+            margin: 0;
+            min-height: 42px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel-2);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 650;
+            letter-spacing: .35px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .top-title::before,
+        .sources-title::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex: 0 0 auto;
+        }
+
+        .onair-panel .top-title::before {
+            background: var(--onair);
+        }
+
+        .sources-title::before {
+            background: var(--ok);
+        }
+
+        .preview-content,
+        .onair-content {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            border: 0;
+            background: #25292d;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .control-panel::before {
+            content: "CONTROL";
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .35px;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .control-panel button {
+            width: 100%;
+            height: 44px;
+            min-height: 44px;
+            padding: 7px 4px;
+            border: 1px solid #4a5158;
+            border-radius: 2px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .control-panel button:hover:not(:disabled) {
+            background: var(--surface-hover);
+        }
+
+        .control-panel button:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        #takeButton {
+            height: 44px;
+            min-height: 44px;
+            margin: 0;
+            background: var(--take);
+            border-color: #dc5555;
+            /*font-size: 11px;*/
+            letter-spacing: .35px;
+        }
+
+        #takeButton:hover:not(:disabled) {
+            background: var(--take-hover);
+        }
+
+        .control-panel button:disabled {
+            opacity: .34;
+            cursor: not-allowed;
+        }
+
+        .preview-loading {
+            position: absolute;
+            inset: 39px 0 0 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 20, 23, .88);
+            z-index: 10;
+        }
+
+        .preview-loading.show {
+            display: flex;
+        }
+
+        .loading-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #30363c;
+            border-top-color: #aab2ba;
+            border-radius: 50%;
+            animation: previewSpin .8s linear infinite;
+        }
+
+        #onAirPreview {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .onair-empty {
+            position: absolute;
+            inset: 39px 0 0 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            pointer-events: none;
+            color: #68717a;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .55px;
+        }
+
+        .onair-empty span {
+            color: #505860;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: .25px;
+        }
+
+        .sources-panel {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 44px;
+            height: calc(36vh - 64px);
+            display: flex;
+            flex-direction: column;
+            min-height: 150px;
+        }
+
+        .source-grid {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 4px;
+            padding: 5px;
+        }
+
+        .source-card {
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #111417;
+            border: 1px solid #2b3136;
+        }
+
+        .source-label {
+            height: 28px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: #1c2125;
+            border-bottom: 1px solid #2b3136;
+            color: #bfc5cb;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .3px;
+        }
+
+        .source-label span:last-child {
+            color: #68717a;
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        .source-frame {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            border: 0;
+            background: #0b0d0f;
+        }
+
+        .status-bar {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 8px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 0 10px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .2px;
+            white-space: nowrap;
+        }
+
+        .status-group {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 12px;
+            border-right: 1px solid var(--border);
+        }
+
+        .status-group:first-child {
+            padding-left: 0;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ok);
+            flex: 0 0 auto;
+        }
+
+        .status-name {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .status-value {
+            color: #b6bdc4;
+        }
+
+        .status-spacer {
+            flex: 1;
+        }
+
+        .status-action {
+            height: 22px;
+            padding: 0 9px;
+            border: 1px solid #4a5158;
+            border-radius: 2px;
+            background: var(--surface);
+            color: #cfd4d9;
+            font: inherit;
+            font-size: 9px;
+            font-weight: 650;
+            cursor: default;
+        }
+
+        .container {
+            position: fixed;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            height: 33vh;
+            display: flex;
+            gap: 5px;
+        }
+
+        .panel {
+            flex: 1;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--panel);
+        }
+
+        .panel h3 {
+            margin: 0;
+            padding: 12px;
+            background: var(--panel-2);
+            flex-shrink: 0;
+        }
+
+        #playlistList,
+        #elementList {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .item {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .item:hover {
+            background: var(--surface-hover);
+        }
+
+        .item.selected {
+            background: #284a68;
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header button {
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+
+        @keyframes previewSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .top-area {
+                grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+            }
+
+            .source-grid {
+                gap: 4px;
+                padding: 5px;
+            }
+
+            .source-label {
+                padding: 0 5px;
+                font-size: 10px;
+            }
+        }
+
+        .status-dot.off {
+            background: #d84a4a;
+        }
+
+        .settings-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(4, 7, 10, .78);
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-modal.show {
+            display: flex;
+        }
+
+        .settings-card {
+            width: 760px;
+            max-width: calc(100vw - 40px);
+            overflow: hidden;
+            background: #10161d;
+            border: 1px solid #2b78b5;
+            border-radius: 18px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .65), 0 0 32px rgba(36, 126, 196, .08);
+        }
+
+        .settings-head {
+            height: 70px;
+            padding: 0 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(180deg, #141d27 0%, #111820 100%);
+            border-bottom: 1px solid #263442;
+            font-size: 16px;
+            font-weight: 750;
+            letter-spacing: .5px;
+        }
+
+        .settings-gear {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            color: #46a6ef;
+            font-size: 23px;
+        }
+
+        .settings-close {
+            margin-left: auto;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            background: transparent;
+            color: #8996a4;
+            font-size: 25px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .settings-close:hover {
+            color: #fff;
+        }
+
+        .settings-body {
+            padding: 26px 30px 20px;
+        }
+
+        .settings-block {
+            display: grid;
+            grid-template-columns: 185px 1fr;
+            gap: 26px;
+            padding: 4px 0 24px;
+        }
+
+        .settings-block+.settings-block {
+            padding-top: 24px;
+            border-top: 1px solid #25303a;
+        }
+
+        .settings-section {
+            padding-top: 3px;
+        }
+
+        .settings-section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #55adf0;
+            font-size: 15px;
+            font-weight: 750;
+            letter-spacing: .35px;
+        }
+
+        .settings-block.engine .settings-section-title {
+            color: #55adf0;
+        }
+
+        .settings-block.playlist .settings-section-title {
+            color: #55adf0;
+        }
+
+        .settings-section-icon {
+            width: 38px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #236ea7;
+            border-radius: 50%;
+            color: #55adf0;
+            font-size: 17px;
+            background: #101b25;
+        }
+
+        /*
+        .settings-block.engine .settings-section-icon {
+            border-color: #247744;
+            color: #67d886;
+            background: #101d18;
+        }
+*/
+        .settings-section-sub {
+            margin: 8px 0 0 48px;
+            color: #788695;
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .settings-fields {
+            display: grid;
+            gap: 11px;
+        }
+
+        .settings-row {
+            display: grid;
+            grid-template-columns: 68px 1fr;
+            gap: 10px;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #d7dde3;
+        }
+
+        .settings-input-wrap {
+            position: relative;
+        }
+
+        .settings-row input {
+            width: 100%;
+            height: 42px;
+            padding: 0 38px 0 12px;
+            background: #0b1117;
+            color: #f1f4f6;
+            border: 1px solid #31566f;
+            border-radius: 10px;
+            outline: none;
+            font: inherit;
+            font-size: 12px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .settings-row input:focus {
+            border-color: #3b96d8;
+            box-shadow: 0 0 0 2px rgba(59, 150, 216, .12);
+        }
+
+        .settings-check {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #49c96b;
+            border-radius: 50%;
+            color: #49c96b;
+            font-size: 10px;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        .settings-note {
+            margin-top: 0;
+            padding: 13px 15px;
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            background: #111e2a;
+            border: 1px solid #28516e;
+            border-radius: 12px;
+            color: #8d9aa7;
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        .settings-note-icon {
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #1769aa;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .settings-note strong {
+            display: block;
+            color: #e7edf2;
+            font-size: 11px;
+        }
+
+        .settings-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 28px;
+            background: #0d1319;
+            border-top: 1px solid #25303a;
+        }
+
+        .settings-actions button {
+            height: 36px;
+            padding: 0 16px;
+            border: 1px solid #3b4854;
+            border-radius: 9px;
+            background: #1b232b;
+            color: #cbd2d8;
+            font: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .25px;
+            cursor: pointer;
+        }
+
+        .settings-actions button:hover {
+            background: #242e37;
+        }
+
+        .settings-actions .settings-save {
+            min-width: 118px;
+            background: #176fc0;
+            border-color: #2c8bdc;
+            color: white;
+        }
+
+        .settings-actions .settings-save:hover {
+            background: #2181d2;
+        }
+
+        @media (max-width: 700px) {
+            .settings-card {
+                width: 100%;
+            }
+
+            .settings-block {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .settings-section-sub {
+                margin-left: 48px;
+            }
+        }
+    </style>
+
+    <style id="modern-ui-overrides">
+        :root {
+            --bg: #080d12;
+            --panel: #0f161e;
+            --panel-2: #121b24;
+            --surface: #17212b;
+            --surface-hover: #202d39;
+            --border: #263442;
+            --text: #eef3f7;
+            --muted: #7f8d9c;
+            --accent: #2d9cff;
+            --onair: #ef4e57;
+            --take: #b9242b;
+            --take-hover: #d52c34;
+            --ok: #42d77d;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 50% -20%, rgba(37, 91, 137, .12), transparent 38%),
+                linear-gradient(180deg, #080d12, #0a1016);
+        }
+
+        .top-area {
+            left: 18px;
+            right: 18px;
+            top: 14px;
+            height: 61vh;
+            grid-template-columns: minmax(0, 1fr) 196px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel,
+        .status-bar {
+            background: linear-gradient(180deg, #111922 0%, #0d141b 100%);
+            border: 1px solid #273746;
+            border-radius: 10px;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .015);
+            overflow: hidden;
+        }
+
+        .top-title,
+        .sources-title {
+            min-height: 52px;
+            padding: 0 16px;
+            background: linear-gradient(180deg, #141d27, #111820);
+            border-bottom: 1px solid #253442;
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .top-title::before,
+        .sources-title::before {
+            width: 9px;
+            height: 9px;
+            box-shadow: 0 0 12px currentColor
+        }
+
+        .preview-content,
+        .onair-content {
+            background: #111820
+        }
+
+        .preview-panel::after {
+            content: "NO PREVIEW LOADED\A Select a source to preview";
+            white-space: pre;
+            position: absolute;
+            inset: 52px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 2;
+            color: #667482;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .preview-panel:has(#layoutPreview[src]:not([src=""]))::after {
+            display: none
+        }
+
+        #layoutPreview {
+            position: relative;
+            z-index: 1
+        }
+
+        .onair-empty {
+            inset: 52px 0 0;
+            color: #778593;
+            font-size: 12px;
+            gap: 8px
+        }
+
+        .onair-empty::before {
+            content: "◉";
+            font-size: 27px;
+            color: #65727f;
+            margin-bottom: 6px
+        }
+
+        .onair-empty span {
+            font-size: 10px;
+            color: #64717d
+        }
+
+        .control-panel {
+            justify-content: flex-start;
+            padding: 22px 18px;
+            gap: 14px;
+        }
+
+        .control-panel::before {
+            font-size: 13px;
+            font-weight: 750;
+            margin: 8px 0 10px;
+        }
+
+        .control-panel button {
+            height: 62px;
+            min-height: 62px;
+            border-radius: 8px;
+            border: 1px solid #354657;
+            background: linear-gradient(180deg, #1a242e, #151e27);
+            font-size: 12px;
+            font-weight: 750;
+            letter-spacing: .2px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+        }
+
+        .control-panel button:hover:not(:disabled) {
+            background: linear-gradient(180deg, #22303d, #1a2631);
+            border-color: #49627a;
+        }
+
+        #resetButton::before {
+
+            font-size: 23px;
+            margin-right: 14px;
+            vertical-align: -2px
+        }
+
+        #sendToVizButton::before {
+
+            font-size: 20px;
+            margin-right: 12px;
+            vertical-align: -1px
+        }
+
+        #takeButton {
+            height: 62px;
+            min-height: 62px;
+            background: linear-gradient(180deg, #c62930, #a91f25);
+            border-color: #f04a51;
+            box-shadow: 0 0 18px rgba(217, 47, 55, .13), inset 0 1px 0 rgba(255, 255, 255, .12);
+        }
+
+        #takeButton::before {
+
+            font-size: 22px;
+            margin-right: 13px
+        }
+
+        #contButton::before {
+
+            font-size: 22px;
+            margin-right: 13px;
+            vertical-align: -1px
+        }
+
+        #outButton::before {
+
+            font-size: 22px;
+            margin-right: 13px
+        }
+
+        .control-panel button:disabled {
+            opacity: .3
+        }
+
+        .sources-panel {
+            left: 18px;
+            right: 18px;
+            bottom: 68px;
+            height: calc(39vh - 92px);
+            min-height: 190px;
+        }
+
+        .sources-title {
+            min-height: 46px;
+            padding: 0 16px;
+            font-size: 12px
+        }
+
+        .source-grid {
+            gap: 12px;
+            padding: 10px 12px 12px
+        }
+
+        .source-card {
+            border: 1px solid #293846;
+            border-radius: 7px;
+            background: #090e13;
+            position: relative;
+        }
+
+        .source-card::after {
+            content: "NO SIGNAL";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 52%;
+            text-align: center;
+            color: #586572;
+            font-size: 10px;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .source-card::before {
+            content: "▧";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 38%;
+            text-align: center;
+            color: #56636f;
+            font-size: 24px;
+            pointer-events: none;
+        }
+
+        .source-card:has(iframe[src]:not([src=""]))::before,
+        .source-card:has(iframe[src]:not([src=""]))::after {
+            display: none
+        }
+
+        .source-label {
+            height: 38px;
+            padding: 0 12px;
+            background: #121a22;
+            border-bottom: 1px solid #293846;
+            color: #e7edf2;
+            font-size: 11px;
+            font-weight: 750;
+        }
+
+        .source-label span:last-child {
+            font-size: 9px;
+            color: #71808e
+        }
+
+        .source-frame {
+            position: relative;
+            z-index: 1;
+            background: transparent;
+            border-bottom: 2px solid #238fe8
+        }
+
+        .status-bar {
+            left: 18px;
+            right: 18px;
+            bottom: 12px;
+            height: 44px;
+            padding: 0 14px;
+            background: linear-gradient(180deg, #111922, #0e151c);
+            border-color: #263746;
+            font-size: 10px;
+        }
+
+        .status-group {
+            padding: 0 18px;
+            gap: 7px;
+            border-color: #31404e
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            box-shadow: 0 0 10px rgba(66, 215, 125, .25)
+        }
+
+        .status-dot.off {
+            box-shadow: 0 0 10px rgba(216, 74, 74, .25)
+        }
+
+        .status-name {
+            font-size: 11px
+        }
+
+        #mseStatusText {
+            color: inherit;
+        }
+
+        #engineStatusText {
+            color: inherit;
+        }
+
+        .status-action {
+            height: 30px;
+            padding: 0 13px;
+            margin-left: 8px;
+            border-radius: 6px;
+            border: 1px solid #326a96;
+            background: #111c26;
+            color: #e2eaf0;
+            cursor: pointer;
+        }
+
+        .status-action:hover {
+            background: #172738;
+            border-color: #3b8dcc
+        }
+
+        .status-action:first-of-type::before {
+            content: "⚙";
+            color: #43a9f2;
+            margin-right: 7px
+        }
+
+        .status-action:last-of-type::before {
+            content: "↻";
+            color: #43a9f2;
+            margin-right: 7px
+        }
+
+        @media(max-width:1200px) {
+            .top-area {
+                grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
+                gap: 9px
+            }
+
+            .control-panel {
+                padding: 14px 10px;
+                gap: 9px
+            }
+
+            .control-panel button,
+            #takeButton {
+                height: 50px;
+                min-height: 50px
+            }
+
+            .source-grid {
+                gap: 6px;
+                padding: 7px
+            }
+        }
+    </style>
+
+
+    <style id="flat-clean-fixes">
+        /* Flat status/title indicators: no glow */
+        .top-title::before,
+        .sources-title::before,
+        .status-dot,
+        .status-dot.off {
+            box-shadow: none !important;
+            filter: none !important;
+        }
+
+        /* Flat panels: remove glow/shadow */
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel,
+        .status-bar {
+            box-shadow: none !important;
+        }
+
+        /* Status items live in one continuous bar — no vertical dividers */
+        .status-group {
+            border-right: 0 !important;
+            border-left: 0 !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            padding: 0 14px !important;
+        }
+
+        .status-group:first-child {
+            padding-left: 0 !important;
+        }
+
+        .status-group+.status-group {
+            margin-left: 8px;
+        }
+
+        /* Keep status bar itself clean */
+        .status-bar {
+            gap: 0 !important;
+        }
+    </style>
+
+
+    <style id="final-polish">
+        /* CONTROL: text only */
+        #resetButton::before,
+        #sendToVizButton::before,
+        #takeButton::before,
+        #contButton::before,
+        #outButton::before {
+            content: none !important;
+            display: none !important;
+        }
+
+        /* Keep controls balanced in the tall middle column */
+        .control-panel {
+            justify-content: flex-start !important;
+        }
+
+        /* TAKE stays primary, but less aggressive */
+        #takeButton {
+            background: linear-gradient(180deg, #a9252c, #8f2026) !important;
+            border-color: #b93a41 !important;
+            box-shadow: none !important;
+        }
+
+        #takeButton:hover:not(:disabled) {
+            background: linear-gradient(180deg, #b72b32, #9c2329) !important;
+        }
+
+        /* Input sources: quiet/clean when empty */
+        .source-card::before,
+        .source-card::after {
+            content: none !important;
+            display: none !important;
+        }
+
+        .source-frame {
+            border-bottom: 0 !important;
+            background: #090e13 !important;
+        }
+
+        /* Optional visual state if source cards get selected/active classes later */
+        .source-card.selected,
+        .source-card.active {
+            border-color: #2d8fd8 !important;
+        }
+
+        .source-card.selected .source-label,
+        .source-card.active .source-label {
+            box-shadow: inset 0 -2px 0 #2d8fd8;
+        }
+
+        /* Bottom actions: text only */
+        .status-action::before {
+            content: none !important;
+            display: none !important;
+        }
+    </style>
+
+
+    <style id="connection-status-color-fix">
+        #mseStatusText.connected,
+        #engineStatusText.connected {
+            color: #55d985 !important;
+        }
+
+        #mseStatusText.disconnected,
+        #engineStatusText.disconnected {
+            color: #ef666d !important;
+        }
+    </style>
+
+    <style>
+        .control-panel button {
+            font-size: 12px !important;
+        }
+
+        #takeButton {
+            font-size: 12px !important;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="top-area">
+        <div class="preview-panel">
+            <div class="top-title">Layout Preview</div>
+
+            <div id="previewLoading" class="preview-loading">
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    <div>Loading preview...</div>
+                </div>
+            </div>
+
+            <iframe id="layoutPreview" class="preview-content" frameborder="0"></iframe>
+        </div>
+
+        <div class="control-panel">
+            <button id="resetButton" type="button" onclick="resetLayout()">BACK</button>
+            <button id="sendToVizButton" type="button" onclick="sendToViz()" disabled>SEND TO VIZ</button>
+            <button id="takeButton" type="button" onclick="takeElement()" disabled>TAKE</button>
+            <button id="contButton" type="button" disabled hidden>CONTINUE</button>
+            <button id="outButton" type="button" onclick="takeOutElement()" disabled>OUT</button>
+            <button id="cleanupButton" type="button" onclick="cleanupPlaylist()" hidden>CLEAN UP</button>
+        </div>
+
+        <div class="onair-panel">
+            <div class="top-title">On Air Preview</div>
+            <div id="onAirEmpty" class="onair-empty">
+                <div>NO ACTIVE OUTPUT</div>
+                <span>Waiting for TAKE</span>
+            </div>
+            <iframe id="onAirPreview" class="onair-content" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <section class="sources-panel" aria-label="Input Sources">
+        <div class="sources-title">Input Sources</div>
+        <div class="source-grid">
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 01</span><span>IFRAME</span></div><iframe id="input01"
+                    class="source-frame" title="Input 01" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 02</span><span>IFRAME</span></div><iframe id="input02"
+                    class="source-frame" title="Input 02" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 03</span><span>IFRAME</span></div><iframe id="input03"
+                    class="source-frame" title="Input 03" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 04</span><span>IFRAME</span></div><iframe id="input04"
+                    class="source-frame" title="Input 04" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 05</span><span>IFRAME</span></div><iframe id="input05"
+                    class="source-frame" title="Input 05" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 06</span><span>IFRAME</span></div><iframe id="input06"
+                    class="source-frame" title="Input 06" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 07</span><span>IFRAME</span></div><iframe id="input07"
+                    class="source-frame" title="Input 07" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 08</span><span>IFRAME</span></div><iframe id="input08"
+                    class="source-frame" title="Input 08" frameborder="0"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <div class="status-bar" aria-label="System Status">
+        <div class="status-group">
+            <span id="mseStatusDot" class="status-dot"></span>
+            <span class="status-name">MSE</span>
+            <span id="mseStatusText" class="status-value">Checking...</span>
+            <span id="mseStatusAddress">-</span>
+        </div>
+        <div class="status-group">
+            <span id="engineStatusDot" class="status-dot"></span>
+            <span class="status-name">ENGINE</span>
+            <span id="engineStatusText" class="status-value">Checking...</span>
+            <span id="engineStatusAddress">-</span>
+        </div>
+        <div class="status-group">
+            <span class="status-name">PLAYLIST</span>
+            <span id="playlistStatus" class="status-value">active</span>
+        </div>
+        <div class="status-group">
+            <span class="status-name">PROFILE</span>
+            <span id="profileStatus" class="status-value">default</span>
+        </div>
+        <div class="status-spacer"></div>
+        <button class="status-action" type="button" onclick="openSettings()">SETTINGS</button>
+        <button class="status-action" type="button" onclick="reconnectServices()">RECONNECT</button>
+    </div>
+
+    <div id="settingsModal" class="settings-modal" onclick="if(event.target===this) closeSettings()">
+        <div class="settings-card">
+            <div class="settings-head">
+                <span class="settings-gear">⚙</span>
+                <span>SYSTEM SETTINGS</span>
+                <button class="settings-close" type="button" onclick="closeSettings()" aria-label="Close">×</button>
+            </div>
+
+            <div class="settings-body">
+                <div class="settings-block">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>MSE</span>
+                        </div>
+                        <div class="settings-section-sub">Media Sequencer<br>connection</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Host</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMseHost" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Port</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMsePort" type="number">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Profile</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMseProfile" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-block engine">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">⌁</span>
+                            <span>VIZ ENGINE</span>
+                        </div>
+                        <div class="settings-section-sub">Viz Engine command<br>listener</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Host</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingEngineHost" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Port</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingEnginePort" type="number">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-block playlist">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>PLAYLIST ID</span>
+                        </div>
+                        <div class="settings-section-sub"></div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Playlist ID</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingPlaylistId" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="settings-note">
+                        <span class="settings-note-icon">i</span>
+                        <span>
+                            <strong>Changes will be applied immediately.</strong>
+                            The system will reconnect and update connection status after saving.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button" onclick="closeSettings()">CANCEL</button>
+                    <button class="settings-save" type="button" onclick="saveSettings()">SAVE SETTINGS</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container" style="background: white; display:none">
+            <div class="panel">
+                <h3 class="panel-header">
+                    <span>Playlists</span>
+                    <button type="button" onclick="refreshMSE()">REFRESH</button>
+                </h3>
+                <div id="playlistList"></div>
+            </div>
+
+            <div class="panel">
+                <h3>Elements</h3>
+                <div id="elementList">Select playlist</div>
+            </div>
+        </div>
+
+        <script>
+            const atom = "http://www.w3.org/2005/Atom";
+            let selectedElementId = null;
+            let selectedElementUrl = null;
+            let selectedPlaylistUuid = null;
+            let currentLayoutData = null;
+            let originalLayoutData = null;
+            let onAirLayoutData = null;
+
+            let layoutEdited = false;
+
+            const elementCache = new Map();
+            //setbox from json
+            const boxLayouts = [
+                {boxType: 0, boxTypeName: "1BOX", count: 1},
+                {boxType: 1, boxTypeName: "2BOX", count: 2},
+                {boxType: 2, boxTypeName: "2BOX_BIG_SMALL", count: 2},
+                {boxType: 3, boxTypeName: "3BOX", count: 3},
+                {boxType: 4, boxTypeName: "3BOX_SP", count: 3},
+                {boxType: 5, boxTypeName: "4BOX", count: 4},
+                {boxType: 6, boxTypeName: "5BOX", count: 5},
+                {boxType: 7, boxTypeName: "6BOX", count: 6},
+                {boxType: 8, boxTypeName: "7BOX", count: 7},
+                {boxType: 9, boxTypeName: "7BOX_CENTER", count: 7},
+                {boxType: 10, boxTypeName: "8BOX", count: 8},
+                {boxType: 11, boxTypeName: "9BOX", count: 9},
+                {boxType: 12, boxTypeName: "10BOX", count: 10},
+                {boxType: 13, boxTypeName: "12BOX", count: 12},
+                {boxType: 14, boxTypeName: "1BOX_SP", count: 1},
+                {boxType: 15, boxTypeName: "1BOX_SP_V", count: 1},
+                {boxType: 16, boxTypeName: "2BOX_SP_V", count: 2},
+                {boxType: 17, boxTypeName: "3BOX_SP_V", count: 3},
+                {boxType: 18, boxTypeName: "4BOX_SP_V", count: 4}
+            ];
+
+            function extractLayoutFromPayload(payload) {
+                const xml = new DOMParser().parseFromString(
+                    payload,
+                    "application/xml"
+                );
+
+                const fields = [...xml.getElementsByTagName("field")];
+                const elementField = fields.find(
+                    field => field.getAttribute("name") === "elementId"
+                );
+
+                selectedElementId =
+                    elementField?.getElementsByTagName("value")[0]?.textContent?.trim() || null;
+
+                console.log("ELEMENT ID FROM PAYLOAD:", selectedElementId);
+
+                const layoutField = fields.find(
+                    field => field.getAttribute("name") === "setBoxes"
+                );
+
+                if (!layoutField) {
+                    console.error("SetBoxes field not found");
+                    return null;
+                }
+
+                const layoutIndex = Number(
+                    layoutField.getElementsByTagName("value")[0]?.textContent
+                );
+
+                const layout = boxLayouts[layoutIndex];
+
+                if (!layout) {
+                    console.error("Invalid layout index:", layoutIndex);
+                    return null;
+                }
+
+                const boxOrder = [];
+
+                for (let i = 0; i < layout.count; i++) {
+                    boxOrder.push({
+                        box: `BOX_${String(i + 1).padStart(2, "0")}`,
+                        input: i
+                    });
+                }
+
+                return {
+                    boxType: layout.boxType,
+                    boxTypeName: layout.boxTypeName,
+                    boxOrder: boxOrder
+                };
+            }
+            //////
+            //buttton
+            function updateActionButtons() {
+                const sendButton = document.getElementById("sendToVizButton");
+                const takeButton = document.getElementById("takeButton");
+                const contButton = document.getElementById("contButton");
+                const outButton = document.getElementById("outButton");
+
+                const hasPayload = currentLayoutData !== null;
+
+                if (!hasPayload) {
+                    sendButton.disabled = true;
+                    takeButton.disabled = true;
+                    contButton.disabled = true;
+                    outButton.disabled = true;
+                    return;
+                }
+
+                sendButton.disabled = !layoutEdited;
+                takeButton.disabled = layoutEdited;
+                contButton.disabled = false;
+                outButton.disabled = false;
+            }
+
+            function resetLayout() {
+                if (!originalLayoutData) {
+                    return;
+                }
+
+                currentLayoutData = structuredClone(originalLayoutData);
+
+                layoutEdited = false;
+
+                updateActionButtons();
+                showLayoutPreview(currentLayoutData);
+
+                console.log("RESET TO ORIGINAL:", currentLayoutData);
+            }
+            //onair preview
+            ///
+
+            function showLayoutPreview(data) {
+                const preview = document.getElementById("layoutPreview");
+                const loading = document.getElementById("previewLoading");
+
+                loading.classList.add("show");
+
+                preview.onload = () => {
+
+                    preview.contentWindow.postMessage(
+                        data,
+                        "*"
+                    );
+
+                    loading.classList.remove("show");
+                };
+
+                preview.src =
+                    `/layouts/${data.boxTypeName}.html`;
+            }
+            //note2
+            function showOnAirPreview(data) {
+
+                const preview = document.getElementById("onAirPreview");
+                const empty = document.getElementById("onAirEmpty");
+                if (empty) empty.style.display = "none";
+
+                preview.onload = () => {
+                    preview.contentWindow.postMessage(
+                        {
+                            ...data,
+                            previewMode: "onair"
+                        },
+                        "*"
+                    );
+                };
+
+                preview.src = `/layouts/${data.boxTypeName}.html`;
+            }
+            //note2
+
+            const previewEvents = new EventSource("/preview-events");
+
+            previewEvents.onmessage = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    console.log("PREVIEW PAYLOAD RECEIVED:", payload);
+
+                    const data = extractLayoutFromPayload(payload);
+
+                    if (!data) {
+                        console.error("Cannot create preview from payload");
+                        return;
+                    }
+
+                    //currentLayoutData = data;
+                    originalLayoutData = structuredClone(data);
+                    currentLayoutData = structuredClone(data);
+
+                    layoutEdited = false;
+                    updateActionButtons();
+
+                    layoutEdited = false;
+                    updateActionButtons();
+                    //showLayoutPreview(data);
+
+                    showLayoutPreview(currentLayoutData);
+
+
+
+                } catch (err) {
+                    console.error("Preview payload error:", err);
+                }
+            };
+
+            previewEvents.onerror = (err) => {
+                console.error("Preview event connection error:", err);
+            };
+
+            window.addEventListener("message", event => {
+
+                const data = event.data;
+
+                if (data.action !== "deleteBox") {
+                    return;
+                }
+
+                console.log("DELETE:", data.boxName);
+
+                layoutEdited = true;
+                updateActionButtons();
+
+                currentLayoutData.boxOrder =
+                    currentLayoutData.boxOrder.filter(
+                        item => item.box !== data.boxName
+                    );
+
+                currentLayoutData.boxOrder.forEach((item, index) => {
+                    item.box = `BOX_${String(index + 1).padStart(2, "0")}`;
+                });
+
+                const remainingBoxes = currentLayoutData.boxOrder.length;
+
+                const newLayout = boxLayouts.find(item =>
+                    item.boxTypeName === `${remainingBoxes}BOX`
+                );
+
+                if (newLayout) {
+                    currentLayoutData.boxType = newLayout.boxType;
+                }
+
+                console.log(
+                    "NEW STATE:",
+                    currentLayoutData
+                );
+
+                showLayoutPreview(currentLayoutData);
+            });
+
+
+            //====
+            async function sendVizCommand(command) {
+                const host = document.getElementById("settingEngineHost").value.trim();
+                const port = document.getElementById("settingEnginePort").value.trim();
+                //`/vizsend?host=${host}&port=${port}&cmd=${encodeURIComponent(command)}`
+                //const response = await fetch(`/vizsend?cmd=${encodeURIComponent(command)}`);
+                const response = await fetch(`/vizsend?host=${host}&port=${port}&cmd=${encodeURIComponent(command)}`);
+                const result = await response.json();
+                console.log("Viz response:", result);
+                return result.response;
+            }
+
+            async function sendToViz() {
+                await takeElement()
+                setBoxIndex();
+            }
+
+            async function setBoxIndex() {
+
+                const data = currentLayoutData;
+
+                const targetLayout = boxLayouts.find(
+                    item => item.boxType === data.boxType
+                );
+
+                onAirLayoutData = {
+                    boxType: data.boxType,
+                    boxTypeName: targetLayout.boxTypeName,
+                    boxOrder: data.boxOrder.map(item => ({
+                        box: item.box,
+                        input: item.input
+                    }))
+                };
+
+                console.log("ON AIR JSON:", onAirLayoutData);
+
+                showOnAirPreview(onAirLayoutData);
+
+                for (const item of data.boxOrder) {
+                    await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`);
+                }
+
+                await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT*INSTANCE*idxLayout SET ${data.boxType}`);
+                await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE Execute`);
+            }
+            ///
+            // ==========================================
+            // LOAD PLAYLISTS
+            // ==========================================
+
+            async function loadPlaylists() {
+                try {
+                    const response = await fetch("/api/playlists", {
+                        headers: {
+                            Accept: "application/atom+xml",
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const text = await response.text();
+
+                    const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                    const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                    const list = document.getElementById("playlistList");
+
+                    list.innerHTML = "";
+
+                    for (const entry of entries) {
+                        const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled";
+
+                        const links = entry.getElementsByTagNameNS(atom, "link");
+
+                        let elementCollectionUrl = null;
+                        let activationUrl = null;
+
+                        for (const link of links) {
+                            const rel = link.getAttribute("rel");
+
+                            const type = link.getAttribute("type");
+
+                            if (rel === "alternate" && type === "application/atom+xml;type=feed") {
+                                elementCollectionUrl = link.getAttribute("href");
+                            }
+
+                            if (rel === "related" && type === "application/vnd.vizrt.playlistactivation+xml") {
+                                activationUrl = link.getAttribute("href");
+                            }
+                        }
+
+                        if (!elementCollectionUrl) {
+                            continue;
+                        }
+
+                        const item = document.createElement("div");
+
+                        item.className = "item";
+
+                        item.textContent = title;
+
+                        item.onclick = () => {
+                            document
+                                .querySelectorAll("#playlistList .item")
+                                .forEach((x) => x.classList.remove("selected"));
+
+                            item.classList.add("selected");
+                            ///
+                            //layoutEdited = false;
+                            //updateActionButtons();
+                            ////
+                            const match = activationUrl?.match(/playlists\/(.+)$/);
+                            selectedPlaylistUuid = match ? match[1] : null;
+
+                            activatePlaylist(activationUrl);
+
+                            loadElements(elementCollectionUrl);
+                        };
+
+                        list.appendChild(item);
+                    }
+                } catch (error) {
+                    console.error("LOAD PLAYLIST ERROR:", error);
+                }
+            }
+
+            // ==========================================
+            // ACTIVATE PLAYLIST
+            // ==========================================
+
+            async function activatePlaylist(activationUrl) {
+                if (!activationUrl) {
+                    console.error("Activation URL not found");
+                    return;
+                }
+
+                //const match = activationUrl.match(/playlists\/(.+)$/);
+                const match = activationUrl;
+
+
+                if (!match) {
+                    console.error("Cannot get playlist UUID:", activationUrl);
+                    return;
+                }
+
+                //const uuid = match[1];
+                const uuid = activationUrl;
+
+                console.log("ACTIVATING:", uuid);
+
+                try {
+                    const response = await fetch(`/api/activate/${encodeURIComponent(uuid)}`, {
+                        method: "PUT",
+                    });
+
+                    const result = await response.text();
+
+                    console.log("ACTIVATION STATUS:", response.status);
+                    console.log("ACTIVATION RESPONSE:", result);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}: ${result}`);
+                    }
+
+                    console.log("PLAYLIST ACTIVATED");
+                } catch (error) {
+                    console.error("ACTIVATE PLAYLIST ERROR:", error);
+                }
+            }
+
+            // ==========================================
+            // LOAD ELEMENTS
+            // ==========================================
+
+            async function loadElements(url) {
+                const list = document.getElementById("elementList");
+
+                list.innerHTML = "Loading...";
+
+                try {
+                    const msePath = new URL(url).pathname + new URL(url).search;
+
+                    const response = await fetch(`/api/elements?path=${encodeURIComponent(msePath)}`);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const text = await response.text();
+
+                    const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                    const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                    list.innerHTML = "";
+
+                    for (const entry of entries) {
+                        const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled Element";
+
+                        const id = entry.getElementsByTagNameNS(atom, "id")[0]?.textContent || "";
+
+                        const links = entry.getElementsByTagNameNS(atom, "link");
+
+                        let elementUrl = null;
+
+                        for (const link of links) {
+                            if (link.getAttribute("rel") === "alternate") {
+                                elementUrl = link.getAttribute("href");
+
+                                break;
+                            }
+                        }
+
+                        if (!elementUrl) {
+                            continue;
+                        }
+
+                        const item = document.createElement("div");
+
+                        item.className = "item";
+
+                        item.textContent = title;
+                        //====================================================================
+                        item.onclick = async () => {
+                            document
+                                .querySelectorAll("#elementList .item")
+                                .forEach((x) => x.classList.remove("selected"));
+
+                            item.classList.add("selected");
+
+                            console.log("ELEMENT:", title);
+                            console.log("ATOM ID:", id);
+                            selectedElementUrl = elementUrl;
+                            console.log("ELEMENT URL:", selectedElementUrl);
+                            selectedElementId = id;
+                            console.log("ID:", selectedElementId);
+
+                            /*
+                            getElementPayload(elementUrl);
+                            //document.getElementById("layoutPreview").src = "/layouts/layout_1.html";
+                            //send json from payload extraction
+    currentLayoutData = {
+        boxType: 4,
+        boxTypeName: "LIVEBOX4",
+        boxOrder: [
+            { box: "BOX_01", input: 0 },
+            { box: "BOX_02", input: 1 },
+            { box: "BOX_03", input: 2 },
+            { box: "BOX_04", input: 3 }
+        ]
+    };
+    
+                            const preview =
+                                document.getElementById("layoutPreview");
+    
+                            preview.onload = () => {
+                                preview.contentWindow.postMessage(
+                                    currentLayoutData,
+                                    "*"
+                                );
+                            };
+    
+                            preview.src =
+                                `/layouts/${currentLayoutData.boxTypeName}.html`;
+                        
+                        */
+                            const loading = document.getElementById("previewLoading");
+                            loading.classList.add("show");
+                            //news
+                            const payload = await getElementPayload(elementUrl);
+
+                            if (!payload) {
+                                console.error("NO ELEMENT PAYLOAD");
+                                return;
+                            }
+
+                            currentLayoutData = extractLayoutFromPayload(payload);
+
+                            if (!currentLayoutData) {
+                                console.error("CANNOT EXTRACT LAYOUT");
+                                return;
+                            }
+
+                            /////
+                            layoutEdited = false;
+                            updateActionButtons();
+                            ///
+                            console.log("LAYOUT JSON:", currentLayoutData);
+
+                            showLayoutPreview(currentLayoutData);
+
+                        };
+
+                        list.appendChild(item);
+                    }
+                } catch (error) {
+                    console.error("LOAD ELEMENTS ERROR:", error);
+
+                    list.innerHTML = "Error loading elements";
+                }
+            }
+
+            // ==========================================
+            // GET ELEMENT PAYLOAD
+            // ==========================================
+
+            async function getElementPayload(url) {
+                if (elementCache.has(url)) {
+                    console.log("FROM CACHE");
+                    console.log("ELEMENT PAYLOAD:", elementCache.get(url));
+                    return elementCache.get(url);
+                }
+
+                const start = performance.now();
+
+                try {
+                    const response = await fetch(`/api/element?url=${encodeURIComponent(url)}`);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const payload = await response.text();
+
+                    elementCache.set(url, payload);
+
+                    console.log("MSE RESPONSE:", Math.round(performance.now() - start), "ms");
+
+                    console.log("ELEMENT PAYLOAD:", payload);
+
+                    return payload;
+                } catch (error) {
+                    console.error("GET ELEMENT ERROR:", error);
+                    return null;
+                }
+            }
+
+            // ==========================================
+            // CLEANUP PLAYLIST
+            // ==========================================
+            async function cleanupPlaylist() {
+                if (!selectedPlaylistUuid) {
+                    console.log("NO PLAYLIST SELECTED");
+                    return;
+                }
+
+                const response = await fetch(`/api/cleanup/${encodeURIComponent(selectedPlaylistUuid)}`, {
+                    method: "POST"
+                });
+
+                const result = await response.text();
+
+                console.log("CLEANUP STATUS:", response.status);
+                console.log("CLEANUP RESPONSE:", result);
+            }
+
+            // ==========================================
+            // TAKE
+            // ==========================================
+            async function takeElement() {
+
+                console.log("TAKE BODY CHECK:", selectedElementId);
+
+                const response = await fetch("/api/take", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain"
+                    },
+                    body: selectedElementId
+                });
+
+                const result = await response.text();
+
+                console.log("TAKE STATUS:", response.status);
+                console.log("TAKE RESPONSE:", result);
+
+                if (response.ok) {
+                    onAirLayoutData = structuredClone(currentLayoutData);
+
+                    console.log("ON AIR JSON:", onAirLayoutData);
+
+                    showOnAirPreview(onAirLayoutData);
+                }
+            }
+
+            // ==========================================
+            // TAKE
+            // ==========================================
+            async function takeOutElement() {
+
+                if (!selectedElementUrl) {
+                    console.log("NO ELEMENT SELECTED");
+                    return;
+                }
+
+                const response = await fetch("/api/out", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain"
+                    },
+                    body: selectedElementId
+                });
+
+                const result = await response.text();
+
+                console.log("TAKE STATUS:", response.status);
+                console.log("TAKE RESPONSE:", result);
+            }
+
+            //erefresh mse
+
+            //async function refreshMSE() {
+            //  console.log("REFRESHING MSE...");
+
+            //elementCache.clear();
+            //await loadPlaylists();
+
+            //console.log("MSE REFRESHED");
+            //}
+
+            async function checkPlaylistStatus() {
+                try {
+                    const response = await fetch("/api/playlist-status", {
+                        cache: "no-store"
+                    });
+
+                    const status = await response.json();
+
+                    document.getElementById("playlistStatus").textContent =
+                        status.active ? "Active" : "Inactive";
+                } catch (err) {
+                    document.getElementById("playlistStatus").textContent = "Inactive";
+                }
+            }
+
+
+            async function refreshMSE_() {
+                console.log("REFRESHING MSE...");
+
+                elementCache.clear();
+
+                selectedElementId = null;
+                selectedElementUrl = null;
+                selectedPlaylistUuid = null;
+                currentLayoutData = null;
+                onAirLayoutData = null;
+                layoutEdited = false;
+
+                document.getElementById("elementList").innerHTML = "Select playlist";
+                document.getElementById("layoutPreview").src = "";
+                document.getElementById("onAirPreview").src = "";
+
+                updateActionButtons();
+
+                await loadPlaylists();
+
+                console.log("MSE REFRESHED");
+            }
+            async function refreshSystemStatus() {
+                try {
+                    const response = await fetch("/api/status", {cache: "no-store"});
+                    const status = await response.json();
+                    setConnectionStatus("mse", status.mse.connected, `${status.mse.host}:${status.mse.port}`);
+                    setConnectionStatus("engine", status.engine.connected, `${status.engine.host}:${status.engine.port}`);
+                    document.getElementById("profileStatus").textContent = status.profile || "default";
+
+                    await checkPlaylistStatus();
+
+                } catch (err) {
+                    setConnectionStatus("mse", false, "-");
+                    setConnectionStatus("engine", false, "-");
+                }
+            }
+
+            function setConnectionStatus(type, connected, address) {
+                const prefix = type === "mse" ? "mse" : "engine";
+                const dot = document.getElementById(`${prefix}StatusDot`);
+                document.getElementById(`${prefix}StatusText`).textContent = connected ? "Connected" : "Disconnected";
+                document.getElementById(`${prefix}StatusAddress`).textContent = address;
+                dot.classList.toggle("off", !connected);
+            }
+
+            async function openSettings() {
+                const response = await fetch("/api/settings", {cache: "no-store"});
+                const cfg = await response.json();
+                console.log(cfg);
+                document.getElementById("settingMseHost").value = cfg.mse.host;
+                document.getElementById("settingMsePort").value = cfg.mse.port;
+                document.getElementById("settingMseProfile").value = cfg.mse.profile;
+                document.getElementById("settingEngineHost").value = cfg.engine.host;
+                document.getElementById("settingEnginePort").value = cfg.engine.port;
+                document.getElementById("settingPlaylistId").value = cfg.playlist.playlistid;
+                document.getElementById("settingsModal").classList.add("show");
+            }
+
+            function closeSettings() {
+                document.getElementById("settingsModal").classList.remove("show");
+            }
+
+            async function saveSettings() {
+                const settings = {
+                    mse: {
+                        host: document.getElementById("settingMseHost").value.trim(),
+                        port: Number(document.getElementById("settingMsePort").value),
+                        profile: document.getElementById("settingMseProfile").value.trim() || "default"
+                    },
+                    engine: {
+                        host: document.getElementById("settingEngineHost").value.trim(),
+                        port: Number(document.getElementById("settingEnginePort").value)
+                    }
+                    ,
+                    playlist: {
+                        playlistid: document.getElementById("settingPlaylistId").value.trim()
+                    }
+                };
+                const response = await fetch("/api/settings", {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(settings)
+                });
+                if (!response.ok) {
+                    alert("Invalid settings");
+                    return;
+                }
+                closeSettings();
+                await reconnectServices();
+            }
+            /*
+                        async function reconnectServices() {
+                            try {await fetch("/api/reconnect", {method: "POST"});} catch (err) { }
+                            elementCache.clear();
+                            await refreshSystemStatus();
+                            await loadPlaylists();
+                            await activatePlaylist(document.getElementById("settingPlaylistId").value.trim())
+                            console.log("RECONNECTED SERVICES");
+                        }
+            */
+
+            async function reconnectServices() {
+                try {
+                    await fetch("/api/reconnect", {method: "POST"});
+                } catch (err) { }
+
+                elementCache.clear();
+
+                const response = await fetch("/api/settings", {
+                    cache: "no-store"
+                });
+
+                const config = await response.json();
+                const playlistId = config.playlist.playlistid;
+
+                await refreshSystemStatus();
+                await loadPlaylists();
+                await activatePlaylist(playlistId);
+
+                console.log("RECONNECTED SERVICES");
+            }
+            // ==========================================
+            // START
+            // ==========================================
+
+            loadPlaylists();
+            updateActionButtons();
+            refreshSystemStatus();
+            setInterval(refreshSystemStatus, 120000);
+
+
+            //document.getElementById("input01").src = "http://127.0.0.1:8889/aux1?autoplay=true&muted=true&controls=false";
+            //document.getElementById("input02").src = "http://127.0.0.1:8889/aux2?autoplay=true&muted=true&controls=false";
+            //document.getElementById("input03").src = "http://127.0.0.1:8889/aux3?autoplay=true&muted=true&controls=false";
+        </script>
+</body>
+
+</html>
+<style>
+    .sources-title {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: #c7cdd3;
+    }
+
+    .sources-title::before {
+        width: 7px;
+        height: 7px;
+    }
+
+    .status-bar {
+        background: #1b2024;
+        border-color: #2b3136;
+    }
+</style>
