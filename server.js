@@ -15,6 +15,68 @@ const mseRoutes = require("./mseservice/routes");
 const app = express();
 const port = 3000;
 
+const CONFIG_PATH = path.join(__dirname, "config.json");
+const DEFAULT_CONFIG = {
+  mse: { host: "127.0.0.1", port: 8580, profile: "default" },
+  engine: { host: "127.0.0.1", port: 6100 }
+};
+
+function loadConfig() {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) {
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2), "utf8");
+      return structuredClone(DEFAULT_CONFIG);
+    }
+    return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8")) };
+  } catch (err) {
+    console.error("CONFIG LOAD ERROR:", err.message);
+    return structuredClone(DEFAULT_CONFIG);
+  }
+}
+
+let config = loadConfig();
+let connectionStatus = { mse: false, engine: false, lastCheck: null };
+
+function checkTcp(host, port, timeout = 1200) {
+  return new Promise(resolve => {
+    const socket = net.createConnection({ host, port: Number(port) });
+    let done = false;
+    const finish = ok => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      resolve(ok);
+    };
+    socket.setTimeout(timeout);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
+}
+
+function checkHttp(host, port, timeout = 1500) {
+  return new Promise(resolve => {
+    const req = http.get({ host, port: Number(port), path: "/", timeout }, res => {
+      res.resume();
+      resolve(true);
+    });
+    req.once("timeout", () => { req.destroy(); resolve(false); });
+    req.once("error", () => resolve(false));
+  });
+}
+
+async function checkConnections() {
+  const [mse, engine] = await Promise.all([
+    checkHttp(config.mse.host, config.mse.port),
+    checkTcp(config.engine.host, config.engine.port)
+  ]);
+  connectionStatus = { mse, engine, lastCheck: new Date().toISOString() };
+  return connectionStatus;
+}
+
+setInterval(checkConnections, 3000);
+setTimeout(checkConnections, 100);
+
 const BASE_DIR = "K:";//====================
 const BASE_DIR_FLOWICS = "B:/Flowics";//====
 
@@ -40,6 +102,88 @@ app.use('/flowics_ajm', express.static('B:/Flowics'));
 
 //app.use("/mse", mseRoutes);
 app.use("/api", mseRoutes);
+
+
+/* ====================== SETTINGS / STATUS ========================= */
+app.get("/api/settings", (req, res) => res.json(config));
+
+app.put("/api/settings", (req, res) => {
+  const body = req.body || {};
+  const next = {
+    mse: {
+      host: String(body.mse?.host || "").trim(),
+      port: Number(body.mse?.port),
+      profile: String(body.mse?.profile || "default").trim() || "default"
+    },
+    engine: {
+      host: String(body.engine?.host || "").trim(),
+      port: Number(body.engine?.port)
+    }
+  };
+  if (!next.mse.host || !next.engine.host || !Number.isInteger(next.mse.port) || !Number.isInteger(next.engine.port)) {
+    return res.status(400).json({ ok: false, error: "Invalid settings" });
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(next, null, 2), "utf8");
+  config = next;
+  checkConnections();
+  res.json({ ok: true, settings: config });
+});
+
+app.get("/api/status", (req, res) => {
+  res.json({
+    mse: { connected: connectionStatus.mse, host: config.mse.host, port: config.mse.port },
+    engine: { connected: connectionStatus.engine, host: config.engine.host, port: config.engine.port },
+    profile: config.mse.profile,
+    lastCheck: connectionStatus.lastCheck
+  });
+});
+
+app.post("/api/reconnect", async (req, res) => {
+  const status = await checkConnections();
+  res.json({ ok: true, status });
+});
+
+/* ======================  PREVIEW RECEIVER  ======================== */
+
+let previewClients = [];
+
+app.get("/preview-events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  previewClients.push(res);
+
+  req.on("close", () => {
+    previewClients = previewClients.filter(client => client !== res);
+  });
+});
+
+function broadcastPayload(payload) {
+  const message = JSON.stringify(payload);
+
+  for (const client of previewClients) {
+    client.write(`data: ${message}\n\n`);
+  }
+}
+
+app.post("/preview", express.text({ type: "*/*", limit: "10mb" }), (req, res) => {
+  const payload = req.body;
+
+  if (!payload || typeof payload !== "string") {
+    return res.status(400).send("Payload required");
+  }
+
+  console.log("PAYLOAD RECEIVED");
+  console.log(payload);
+
+  broadcastPayload(payload);
+
+  res.status(200).send("OK");
+});
+
+/* ================================================================== */
 
 // Main Route
 app.get('/', (req, res) => {
@@ -167,14 +311,14 @@ app.post("/read", (req, res) => {
 /* ======================  VIZ COMMAND  ============================= */
 
 app.get("/vizsend", async (req, res) => {
-  const { host, port, cmd } = req.query;
-  if (!host || !port || !cmd) {
+  const { cmd } = req.query;
+  if (!cmd) {
     return res.json({ ok: false, error: "MISSING_PARAM" });
   }
   try {
     const response = await sendVizCommand(
-      host,
-      port,
+      config.engine.host,
+      config.engine.port,
       decodeURIComponent(cmd)
     );
     res.json({ ok: true, response });

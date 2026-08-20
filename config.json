@@ -1,0 +1,11 @@
+{
+  "mse": {
+    "host": "localhost",
+    "port": 8580,
+    "profile": "LIVEBOXES"
+  },
+  "engine": {
+    "host": "127.0.0.1",
+    "port": 6100
+  }
+}

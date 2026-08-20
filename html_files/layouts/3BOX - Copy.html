@@ -19,16 +19,27 @@
             width: 100%;
             height: 100%;
             display: grid;
-            grid-template-columns: repeat(1, 1fr);
-            grid-template-rows: repeat(1, 1fr);
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 5px;
             padding: 5px;
-            box-sizing: border-box
+            box-sizing: border-box;
+            animation: boxIn 220ms ease-out both
+        }
+
+        [data-box="BOX_02"] {
+            grid-column: 1/span 1;
+            grid-row: 1/span 1
+        }
+
+        [data-box="BOX_03"] {
+            grid-column: 1/span 1;
+            grid-row: 2/span 1
         }
 
         [data-box="BOX_01"] {
-            grid-column: 1/span 1;
-            grid-row: 1/span 1
+            grid-column: 2/span 1;
+            grid-row: 1/span 2
         }
 
         .box {
@@ -44,7 +55,8 @@
             position:relative;
             min-width:0;
             min-height:0;
-            box-sizing:border-box
+            box-sizing:border-box;
+            animation:boxIn 220ms ease-out both
         }
 
         .delete-box {
@@ -68,7 +80,12 @@
         }
         .delete-box:hover{background:#343a41;color:#fff;border-color:#68717b}
     
-.box-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;line-height:1.1}
+@keyframes boxIn {
+            from { opacity:0; transform:scale(.96) }
+            to { opacity:1; transform:scale(1) }
+        }
+
+        .box-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;line-height:1.1}
 .box-name{font-size:1em;font-weight:700;letter-spacing:.2px}
 .input-name{font-size:.72em;font-weight:500;color:#aeb6be;letter-spacing:.45px;text-transform:uppercase}
 
@@ -114,7 +131,7 @@
 
 <body>
     <div id="layout"></div>
-  <script>
+<script>
     window.addEventListener("message", event => {
 
         const data = event.data;
