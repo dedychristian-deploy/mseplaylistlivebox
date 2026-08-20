@@ -146,61 +146,73 @@
 
 <body>
     <div id="layout"></div>
-    <script>
-    window.addEventListener("message", event => {
+<script>
+        window.addEventListener("message", event => {
 
-        const data = event.data;
+            const data = event.data;
 
-        if (!data || !Array.isArray(data.boxOrder)) {
-            return;
-        }
-
-        const layout = document.getElementById("layout");
-        layout.innerHTML = "";
-
-        data.boxOrder.forEach(item => {
-
-            const boxName = item.box;
-            const input = item.input;
-
-            const box = document.createElement("div");
-            box.className = "box";
-
-            if (data.previewMode === "onair") {
-                box.dataset.box = boxName;
-            } else {
-                box.dataset.box =
-                    `BOX_${String(input + 1).padStart(2, "0")}`;
+            if (!data || !Array.isArray(data.boxOrder)) {
+                return;
             }
 
-            const label = document.createElement("div");
-            label.className = "box-label";
-            const boxLabel = document.createElement("span");
-            boxLabel.className = "box-name";
-            boxLabel.textContent = boxName;
-            const inputLabel = document.createElement("span");
-            inputLabel.className = "input-name";
-            inputLabel.textContent = `LIVE INPUT ${input + 1}`;
-            label.append(boxLabel, inputLabel);
+            const layout = document.getElementById("layout");
+            layout.innerHTML = "";
 
-            const del = document.createElement("button");
-            del.className = "delete-box";
-            del.textContent = "×";
+            data.boxOrder.forEach(item => {
 
-            del.onclick = () =>
-                window.parent.postMessage(
-                    {
-                        action: "deleteBox",
-                        boxName
-                    },
-                    "*"
-                );
+                const boxName = item.box;
+                const input = item.input;
 
-            box.append(label, del);
-            layout.appendChild(box);
+                const box = document.createElement("div");
+                box.className = "box";
+
+
+
+                if (data.previewMode === "onair") {
+                    box.dataset.box = boxName;
+                } else {
+                    box.dataset.box =
+                        `BOX_${String(input + 1).padStart(2, "0")}`;
+                }
+
+                const stream = document.createElement("iframe");
+                stream.className = "live-stream";
+                stream.src =
+                    `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+                stream.allow = "autoplay; fullscreen";
+
+                const label = document.createElement("div");
+                label.className = "box-label";
+
+                const boxLabel = document.createElement("span");
+                boxLabel.className = "box-name";
+                boxLabel.textContent = boxLabel.textContent = boxLabel.textContent = `BOX ${String(input + 1).padStart(2, "0")}`;
+
+
+                const inputLabel = document.createElement("span");
+                inputLabel.className = "input-name";
+                inputLabel.textContent = `LIVE INPUT ${input + 1}`;
+
+                label.append(boxLabel, inputLabel);
+
+                const del = document.createElement("button");
+                del.className = "delete-box";
+                del.textContent = "×";
+
+                del.onclick = () =>
+                    window.parent.postMessage(
+                        {
+                            action: "deleteBox",
+                            boxName
+                        },
+                        "*"
+                    );
+
+                box.append(stream, label, del);
+                layout.appendChild(box);
+            });
         });
-    });
-</script>
+    </script>
 </body>
 
 </html>

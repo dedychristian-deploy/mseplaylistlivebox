@@ -224,13 +224,14 @@
                 const box = document.createElement("div");
                 box.className = "box";
 
+
+
                 if (data.previewMode === "onair") {
                     box.dataset.box = boxName;
                 } else {
                     box.dataset.box =
                         `BOX_${String(input + 1).padStart(2, "0")}`;
                 }
-
 
                 const stream = document.createElement("iframe");
                 stream.className = "live-stream";

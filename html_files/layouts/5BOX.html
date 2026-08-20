@@ -201,7 +201,7 @@
 
 <body>
     <div id="layout"></div>
-    <script>
+   <script>
         window.addEventListener("message", event => {
 
             const data = event.data;
@@ -221,12 +221,7 @@
                 const box = document.createElement("div");
                 box.className = "box";
 
-                if (data.previewMode === "onair") {
-                    box.dataset.box = boxName;
-                } else {
-                    box.dataset.box =
-                        `BOX_${String(input + 1).padStart(2, "0")}`;
-                }
+
 
                 if (data.previewMode === "onair") {
                     box.dataset.box = boxName;
