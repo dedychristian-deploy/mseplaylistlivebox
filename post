@@ -1,0 +1,13 @@
+$body = @"
+<payload>
+    <field name="setBoxes">
+        <value>3BOX</value>
+    </field>
+</payload>
+"@
+
+Invoke-WebRequest `
+    -Uri "http://127.0.0.1:3000/preview" `
+    -Method POST `
+    -ContentType "text/plain" `
+    -Body $body
