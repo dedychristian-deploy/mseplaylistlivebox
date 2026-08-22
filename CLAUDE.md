@@ -1689,7 +1689,132 @@ Prefer modifying existing working code over rewriting files.
 
 ---
 
-# 57. Instruction for Every New Claude Session
+# 57. Current Preview / On Air Persistent Rendering Architecture
+
+The current frontend uses a **persistent A/B bank rendering model** for LIVEBOX Preview and On Air for supported layouts.
+
+Supported persistent layout identifiers currently include:
+
+```text
+1BOX
+2BOX
+2BOX_BIG_SMALL
+3BOX
+3BOX_SP
+4BOX
+5BOX
+6BOX
+7BOX
+7BOX_CENTER
+8BOX
+9BOX
+10BOX
+12BOX
+```
+
+Always verify the current `persistentLayoutNames` set in source before modifying this list.
+
+## Preview A/B Banks
+
+Preview uses two persistent stages:
+
+```text
+p2PreviewBankA
+p2PreviewBankB
+```
+
+The active Preview layout is not mutated in place during a layout change. Instead:
+
+```text
+Current Preview bank remains visible
+        ↓
+Render new layout into hidden Preview bank
+        ↓
+Cross-dissolve old bank → new bank
+        ↓
+Swap active Preview bank
+```
+
+The current dissolve is implemented with opacity transition around `600ms ease`.
+
+This architecture was introduced specifically to avoid the visible snap/jump caused by changing grid geometry inside a single Preview stage during a fade.
+
+Do NOT replace Preview A/B cross-dissolve with the older single-stage pattern of:
+
+```text
+fade boxes down
+change grid geometry
+fade boxes up
+```
+
+unless explicitly requested. That older method produced a noticeable visual jump.
+
+## On Air A/B Banks
+
+On Air uses the same general persistent dual-bank concept:
+
+```text
+p2OnAirBankA
+p2OnAirBankB
+```
+
+Preview and On Air remain separate states and separate bank pairs.
+
+Changing Preview must not silently change On Air.
+
+## Persistent Sources
+
+Persistent Preview and On Air stages preload source slots once through the existing persistent-stage initialization.
+
+Do not recreate all source players on every layout change if the existing persistent renderer can reuse them.
+
+The purpose is:
+
+* faster layout switching;
+* fewer visible black/reload frames;
+* predictable dissolve behavior;
+* reduced unnecessary player recreation.
+
+## Quick Zoom Source Cache
+
+Quick Zoom also pre-creates 12 source players at startup.
+
+The current test/source mode uses lightweight images:
+
+```javascript
+const player = document.createElement("img");
+player.src = `/images/live${input + 1}.png`;
+```
+
+This maps:
+
+```text
+input 0  → /images/live1.png
+...
+input 11 → /images/live12.png
+```
+
+The image files are expected to be exposed by the Node/Express static route `/images`. Verify the actual server static mapping before changing paths.
+
+The player can be switched back to the existing iframe/live AUX source approach when required. Do not remove the iframe/live-source code path merely because image mode is being used for lightweight testing.
+
+For image players, current presentation uses `object-fit: cover` / centered positioning to avoid stretched images. This CSS is safe to leave in place when the source element is later changed back to an iframe; `object-fit` does not control the contents rendered inside the iframe.
+
+## Quick Zoom Behavior
+
+Quick Zoom is an operator Preview interaction. Preserve its existing selection, Cancel, and send/take workflow.
+
+Do not let Quick Zoom source switching accidentally black out or replace the original source player used by the normal Preview layout. Quick Zoom and normal Preview must not destructively share one DOM player instance.
+
+## Performance Rule for Sources
+
+Avoid eagerly running 12 simultaneous live video/AUX streams in multiple UI surfaces unless operationally required. The application previously showed significant CPU/load impact when many MediaMTX/AUX video streams were active simultaneously.
+
+For development or UI testing, lightweight image sources are acceptable. For live operation, preserve the existing persistent-player approach and verify actual machine performance before increasing simultaneous live streams.
+
+---
+
+# 58. Instruction for Every New Claude Session
 
 When starting work on this repository:
 
