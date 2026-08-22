@@ -13,8 +13,5 @@
   },
   "director": {
     "enabled": true
-  },
-  "interaction": {
-    "mode": "desktop"
   }
 }

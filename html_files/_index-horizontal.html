@@ -2194,55 +2194,6 @@
 }
 </style>
 
-
-    <style id="interaction-mode-setting">
-        body.touchscreen-mode,
-        body.touchscreen-mode * {
-            cursor: none !important;
-        }
-
-        .interaction-mode-options {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .interaction-mode-option {
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            border: 1px solid #31566f;
-            border-radius: 10px;
-            background: #0b1117;
-            color: #d7dde3;
-            font-size: 11px;
-            font-weight: 650;
-            cursor: pointer;
-        }
-
-        .interaction-mode-option:has(input:checked) {
-            border-color: #2d9cff;
-            background: #102235;
-            color: #eef6ff;
-        }
-
-        .interaction-mode-option input {
-            accent-color: #2d9cff;
-        }
-    </style>
-
-
-<style id="backend-touchscreen-cursor">
-html.touchscreen-mode,
-html.touchscreen-mode *,
-body.touchscreen-mode,
-body.touchscreen-mode * {
-    cursor: none !important;
-}
-</style>
-
 </head>
 <!--
 <body class="hide-sources">
@@ -2535,28 +2486,6 @@ body.touchscreen-mode * {
                         </label>
                     </div>
 
-                </div>
-
-                <div class="settings-block interaction-mode">
-                    <div class="settings-section">
-                        <div class="settings-section-title">
-                            <span>INTERACTION MODE</span>
-                        </div>
-                        <div class="settings-section-sub">Desktop mouse or touchscreen operation</div>
-                    </div>
-
-                    <div class="settings-fields">
-                        <div class="interaction-mode-options">
-                            <label class="interaction-mode-option">
-                                <input id="settingModeDesktop" type="radio" name="interactionMode" value="desktop">
-                                <span>DESKTOP</span>
-                            </label>
-                            <label class="interaction-mode-option">
-                                <input id="settingModeTouchscreen" type="radio" name="interactionMode" value="touchscreen">
-                                <span>TOUCHSCREEN</span>
-                            </label>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="settings-block director-integration">
@@ -3833,8 +3762,6 @@ body.touchscreen-mode * {
             async function openSettings() {
                 const response = await fetch("/api/settings", { cache: "no-store" });
                 const cfg = await response.json();
-                window.__backendInteractionMode = cfg.interaction?.mode || "desktop";
-                applyInteractionMode(window.__backendInteractionMode);
                 console.log(cfg);
                 document.getElementById("settingMseHost").value = cfg.mse.host;
                 document.getElementById("settingMsePort").value = cfg.mse.port;
@@ -3843,9 +3770,6 @@ body.touchscreen-mode * {
                 document.getElementById("settingEnginePort").value = cfg.engine.port;
                 document.getElementById("settingPlaylistId").value = cfg.playlist.playlistid;
                 document.getElementById("settingReceiveDirector").checked = cfg.director?.enabled !== false;
-                const interactionMode = (window.__backendInteractionMode || "desktop") || "desktop";
-                document.getElementById("settingModeDesktop").checked = interactionMode === "desktop";
-                document.getElementById("settingModeTouchscreen").checked = interactionMode === "touchscreen";
                 document.getElementById("settingsModal").classList.add("show");
             }
 
@@ -3870,8 +3794,7 @@ body.touchscreen-mode * {
                     },
                     director: {
                         enabled: document.getElementById("settingReceiveDirector").checked
-                    },
-                interaction: { mode: getSelectedInteractionMode() }
+                    }
                 };
                 const response = await fetch("/api/settings", {
                     method: "PUT",
@@ -3882,8 +3805,6 @@ body.touchscreen-mode * {
                     alert("Invalid settings");
                     return;
                 }
-                window.__backendInteractionMode = settings.interaction.mode;
-                applyInteractionMode(settings.interaction.mode);
                 closeSettings();
                 await reconnectServices();
             }
@@ -3984,12 +3905,6 @@ body.touchscreen-mode * {
                     });
                 });
             });
-            function applyInteractionMode(mode) {
-                document.body.classList.toggle("touchscreen-mode", mode === "touchscreen");
-            }
-
-            applyInteractionMode((window.__backendInteractionMode || "desktop") || "desktop");
-
             // ==========================================
             // START
             // ==========================================
@@ -4006,23 +3921,6 @@ body.touchscreen-mode * {
             //document.getElementById("input02").src = "http://127.0.0.1:8889/aux2?autoplay=true&muted=true&controls=false";
             //document.getElementById("input03").src = "http://127.0.0.1:8889/aux3?autoplay=true&muted=true&controls=false";
         </script>
-
-<script id="backend-interaction-mode-helper">
-function getSelectedInteractionMode() {
-    const checked = document.querySelector('input[name="interactionMode"]:checked');
-    return checked ? checked.value : "desktop";
-}
-
-function applyInteractionMode(mode) {
-    const normalized = mode === "touchscreen" ? "touchscreen" : "desktop";
-    document.documentElement.classList.toggle("touchscreen-mode", normalized === "touchscreen");
-    document.body?.classList.toggle("touchscreen-mode", normalized === "touchscreen");
-
-    const radio = document.querySelector(`input[name="interactionMode"][value="${normalized}"]`);
-    if (radio) radio.checked = true;
-}
-</script>
-
 </body>
 
 </html>

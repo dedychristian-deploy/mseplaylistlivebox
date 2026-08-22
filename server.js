@@ -20,7 +20,8 @@ const DEFAULT_CONFIG = {
   mse: { host: "127.0.0.1", port: 8580, profile: "default" },
   engine: { host: "127.0.0.1", port: 6100 },
   playlist: { playlistid: "" },
-  director: { enabled: true }
+  director: { enabled: true },
+  interaction: { mode: "desktop" }
 };
 
 function loadConfig() {
@@ -128,6 +129,9 @@ app.put("/api/settings", (req, res) => {
     },
     director: {
       enabled: body.director?.enabled !== false
+    },
+    interaction: {
+      mode: body.interaction?.mode === "touchscreen" ? "touchscreen" : "desktop"
     }
   };
   if (!next.mse.host || !next.engine.host || !Number.isInteger(next.mse.port) || !Number.isInteger(next.engine.port)) {

@@ -18,7 +18,9 @@ const port = 9090;
 const CONFIG_PATH = path.join(__dirname, "config.json");
 const DEFAULT_CONFIG = {
   mse: { host: "127.0.0.1", port: 8580, profile: "default" },
-  engine: { host: "127.0.0.1", port: 6100 }
+  engine: { host: "127.0.0.1", port: 6100 },
+  playlist: { playlistid: "" },
+  director: { enabled: true }
 };
 
 function loadConfig() {
@@ -87,6 +89,7 @@ app.use(express.json());
 app.use(express.text());
 
 app.use("/template_images", express.static(path.join(__dirname, "template_images")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 //app.use("/datareader/flowics", express.static(BASE_DIR_FLOWICS));//========
 //app.use("/datareader/viz", express.static(BASE_DIR));//====================
 app.use(['/datareader/flowics','/flowics'], express.static(BASE_DIR_FLOWICS));//========
@@ -122,6 +125,9 @@ app.put("/api/settings", (req, res) => {
     },
     playlist: {
       playlistid: String(body.playlist?.playlistid || "").trim()
+    },
+    director: {
+      enabled: body.director?.enabled !== false
     }
   };
   if (!next.mse.host || !next.engine.host || !Number.isInteger(next.mse.port) || !Number.isInteger(next.engine.port)) {
@@ -179,8 +185,16 @@ app.post("/preview", express.text({ type: "*/*", limit: "10mb" }), (req, res) =>
     return res.status(400).send("Payload required");
   }
 
-  console.log("PAYLOAD RECEIVED");
+  const sourceMatch = payload.match(/<field\s+name=["\']source["\'][^>]*>\s*<value>\s*([^<]+?)\s*<\/value>/i);
+  const source = sourceMatch ? sourceMatch[1].trim().toLowerCase() : "local";
+
+  console.log("PAYLOAD RECEIVED", `source=${source}`);
   console.log(payload);
+
+  if (source === "director" && config.director?.enabled === false) {
+    console.log("DIRECTOR PAYLOAD BLOCKED");
+    return res.status(204).end();
+  }
 
   broadcastPayload(payload);
 
