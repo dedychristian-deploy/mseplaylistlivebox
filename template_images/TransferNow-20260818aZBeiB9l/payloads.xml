@@ -1,0 +1,198 @@
+<payload xmlns="http://www.vizrt.com/types">
+    <field name="-concept-variant-choice">
+        <field name="concept">
+            <value>AJAN_10_NEWS</value>
+        </field>
+        <field name="variant">
+            <value>Default</value>
+        </field>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_03______">
+        <value>FF_TAG03</value>
+    </field>
+    <field name="Label">
+        <value>1 Box</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_02______">
+        <value>FF_TAG02</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_01______">
+        <value>FF_TAG01</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_SET_BOXES___">
+        <value>FF_BOX_SETTER</value>
+    </field>
+    <field name="SetBoxes">
+        <value>0</value>
+    </field>
+    <field name="-title" />
+    <field name="-auto-generated-title">
+        <value>FF_1 Box</value>
+    </field>
+    <field name="SelectType_Box_01">
+        <value>7</value>
+    </field>
+    <field name="Locator_01">
+        <value>111</value>
+    </field>
+    <field name="SelectType_Box_02">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_02">
+        <value>222</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_03">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_03">
+        <value>333</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_05______">
+        <value>FF_TAG05</value>
+    </field>
+    <field name="SelectType_Box_04">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_04______">
+        <value>FF_TAG04</value>
+    </field>
+    <field name="Locator_04">
+        <value>444</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_05">
+        <value>555</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_12______">
+        <value>FF_TAG12</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_11______">
+        <value>FF_TAG11</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_10______">
+        <value>FF_TAG10</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_08______">
+        <value>FF_TAG08</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_09______">
+        <value>FF_TAG09</value>
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_06______">
+        <value>FF_TAG06</value>
+    </field>
+    <field name="SelectType_Box_05">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_07______">
+        <value>FF_TAG07</value>
+    </field>
+    <field name="SelectType_Box_06">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-TOGGLE_BOX_SP______">
+        <value>FF_SP_3BOXES_OUT</value>
+    </field>
+    <field name="Locator_07">
+        <value>777</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_06">
+        <value>666</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_07">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_09">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_09">
+        <value>999</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_10">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_08">
+        <value>888</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_08">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_10">
+        <value>000</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_11">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SelectType_Box_12">
+        <value>7</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_11">
+        <value>011</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Locator_12">
+        <value>012</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Title">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Name">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="ContentText">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="SidePanel">
+        <value>WHITE</value>
+        <annotation visibility="hidden" />
+    </field>
+    <field name="LocatorText">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="JobTitle">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Num">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Unit">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="Source">
+        <value />
+        <annotation visibility="hidden" />
+    </field>
+    <field name="-vizlayer-FF_SP_CONTENT______">
+        <value>SD_KP_OUT</value>
+    </field>
+    <field name="text">
+        <value>MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE retake 0</value>
+    </field>
+</payload>

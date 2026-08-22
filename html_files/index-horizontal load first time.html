@@ -1,0 +1,3907 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+
+    <style>
+        :root {
+            --bg: #111417;
+            --panel: #181c20;
+            --panel-2: #20252a;
+            --surface: #292e33;
+            --surface-hover: #32383e;
+            --border: #343a40;
+            --text: #e7eaed;
+            --muted: #8f979f;
+            --accent: #3b82c4;
+            --onair: #d84a4a;
+            --take: #b63232;
+            --take-hover: #cf3d3d;
+            --ok: #54a66b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .top-area {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            top: 12px;
+            height: 64vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr);
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            min-height: 0;
+        }
+
+        .preview-panel,
+        .onair-panel {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .top-title,
+        .sources-title {
+            margin: 0;
+            min-height: 42px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel-2);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 650;
+            letter-spacing: .35px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .top-title::before,
+        .sources-title::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex: 0 0 auto;
+        }
+
+        .onair-panel .top-title::before {
+            background: var(--onair);
+        }
+
+        .sources-title::before {
+            background: var(--ok);
+        }
+
+        .preview-content,
+        .onair-content {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            border: 0;
+            background: #25292d;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .control-panel::before {
+            content: "";
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .35px;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .control-panel button {
+            width: 100%;
+            height: 44px;
+            min-height: 44px;
+            padding: 7px 4px;
+            border: 1px solid #4a5158;
+            border-radius: 2px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .control-panel button:hover:not(:disabled) {
+            background: var(--surface-hover);
+        }
+
+        .control-panel button:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        #takeButton {
+            height: 44px;
+            min-height: 44px;
+            margin: 0;
+            background: var(--take);
+            border-color: #dc5555;
+            /*font-size: 11px;*/
+            letter-spacing: .35px;
+        }
+
+        #takeButton:hover:not(:disabled) {
+            background: var(--take-hover);
+        }
+
+        .control-panel button:disabled {
+            opacity: .34;
+            cursor: not-allowed;
+        }
+
+        .preview-loading {
+            position: absolute;
+            inset: 39px 0 0 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 20, 23, .88);
+            z-index: 10;
+        }
+
+        .preview-loading.show {
+            display: flex;
+        }
+
+        .loading-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #30363c;
+            border-top-color: #aab2ba;
+            border-radius: 50%;
+            animation: previewSpin .8s linear infinite;
+        }
+
+        #preview,
+        #onAirPreview {
+            opacity: 1;
+            transition: opacity 10000ms ease;
+        }
+
+        #onAirPreview {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .onair-empty {
+            position: absolute;
+            inset: 39px 0 0 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            pointer-events: none;
+            color: #68717a;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .55px;
+        }
+
+        .onair-empty span {
+            color: #505860;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: .25px;
+        }
+
+        .sources-panel {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 44px;
+            height: calc(36vh - 64px);
+            display: flex;
+            flex-direction: column;
+            min-height: 150px;
+        }
+
+        .source-grid {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 4px;
+            padding: 5px;
+        }
+
+        .source-card {
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #111417;
+            border: 1px solid #2b3136;
+        }
+
+        .source-label {
+            height: 28px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: #1c2125;
+            border-bottom: 1px solid #2b3136;
+            color: #bfc5cb;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: .3px;
+        }
+
+        .source-label span:last-child {
+            color: #68717a;
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        .source-frame {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            border: 0;
+            background: #0b0d0f;
+        }
+
+        .status-bar {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 8px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 0 10px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .2px;
+            white-space: nowrap;
+        }
+
+        .status-group {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 12px;
+            border-right: 1px solid var(--border);
+        }
+
+        .status-group:first-child {
+            padding-left: 0;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ok);
+            flex: 0 0 auto;
+        }
+
+        .status-name {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .status-value {
+            color: #b6bdc4;
+        }
+
+        .status-spacer {
+            flex: 1;
+        }
+
+        .status-action {
+            height: 22px;
+            padding: 0 9px;
+            border: 1px solid #4a5158;
+            border-radius: 2px;
+            background: var(--surface);
+            color: #cfd4d9;
+            font: inherit;
+            font-size: 9px;
+            font-weight: 650;
+            cursor: default;
+        }
+
+        .container {
+            position: fixed;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            height: 33vh;
+            display: flex;
+            gap: 5px;
+        }
+
+        .panel {
+            flex: 1;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--panel);
+        }
+
+        .panel h3 {
+            margin: 0;
+            padding: 12px;
+            background: var(--panel-2);
+            flex-shrink: 0;
+        }
+
+        #playlistList,
+        #elementList {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .item {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .item:hover {
+            background: var(--surface-hover);
+        }
+
+        .item.selected {
+            background: #284a68;
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header button {
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+
+        @keyframes previewSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .top-area {
+                grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+            }
+
+            .source-grid {
+                gap: 4px;
+                padding: 5px;
+            }
+
+            .source-label {
+                padding: 0 5px;
+                font-size: 10px;
+            }
+        }
+
+        .status-dot.off {
+            background: #d84a4a;
+        }
+
+        .settings-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(4, 7, 10, .78);
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-modal.show {
+            display: flex;
+        }
+
+        .settings-card {
+            width: 760px;
+            max-width: calc(100vw - 40px);
+            overflow: hidden;
+            background: #10161d;
+            border: 1px solid #2b78b5;
+            border-radius: 18px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .65), 0 0 32px rgba(36, 126, 196, .08);
+        }
+
+        .settings-head {
+            height: 70px;
+            padding: 0 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(180deg, #141d27 0%, #111820 100%);
+            border-bottom: 1px solid #263442;
+            font-size: 16px;
+            font-weight: 750;
+            letter-spacing: .5px;
+        }
+
+        .settings-gear {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            color: #46a6ef;
+            font-size: 23px;
+        }
+
+        .settings-close {
+            margin-left: auto;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            background: transparent;
+            color: #8996a4;
+            font-size: 25px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .settings-close:hover {
+            color: #fff;
+        }
+
+        .settings-body {
+            padding: 26px 30px 20px;
+        }
+
+        .settings-block {
+            display: grid;
+            grid-template-columns: 185px 1fr;
+            gap: 26px;
+            padding: 4px 0 24px;
+        }
+
+        .settings-block+.settings-block {
+            padding-top: 24px;
+            border-top: 1px solid #25303a;
+        }
+
+        .settings-section {
+            padding-top: 3px;
+        }
+
+        .settings-section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #55adf0;
+            font-size: 15px;
+            font-weight: 750;
+            letter-spacing: .35px;
+        }
+
+        .settings-block.engine .settings-section-title {
+            color: #55adf0;
+        }
+
+        .settings-block.playlist .settings-section-title {
+            color: #55adf0;
+        }
+
+        .settings-section-icon {
+            width: 38px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #236ea7;
+            border-radius: 50%;
+            color: #55adf0;
+            font-size: 17px;
+            background: #101b25;
+        }
+
+        /*
+        .settings-block.engine .settings-section-icon {
+            border-color: #247744;
+            color: #67d886;
+            background: #101d18;
+        }
+*/
+        .settings-section-sub {
+            margin: 8px 0 0 48px;
+            color: #788695;
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .settings-fields {
+            display: grid;
+            gap: 11px;
+        }
+
+        .settings-row {
+            display: grid;
+            grid-template-columns: 68px 1fr;
+            gap: 10px;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #d7dde3;
+        }
+
+        .settings-input-wrap {
+            position: relative;
+        }
+
+        .settings-row input {
+            width: 100%;
+            height: 42px;
+            padding: 0 38px 0 12px;
+            background: #0b1117;
+            color: #f1f4f6;
+            border: 1px solid #31566f;
+            border-radius: 10px;
+            outline: none;
+            font: inherit;
+            font-size: 12px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .settings-row input:focus {
+            border-color: #3b96d8;
+            box-shadow: 0 0 0 2px rgba(59, 150, 216, .12);
+        }
+
+        .settings-check {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #49c96b;
+            border-radius: 50%;
+            color: #49c96b;
+            font-size: 10px;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        .settings-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 46px;
+            padding: 0;
+            color: #d7dde3;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .settings-toggle-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .settings-toggle-copy strong {
+            color: #dce5ec;
+            font-size: 11px;
+            font-weight: 650;
+        }
+
+        .settings-toggle-copy small {
+            color: #6f7e8b;
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        .settings-toggle-row input {
+            width: 17px;
+            height: 17px;
+            margin: 0 2px 0 16px;
+            accent-color: #2d9cff;
+            cursor: pointer;
+        }
+
+        .settings-note {
+            margin-top: 0;
+            padding: 13px 15px;
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            background: #111e2a;
+            border: 1px solid #28516e;
+            border-radius: 12px;
+            color: #8d9aa7;
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        .settings-note-icon {
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #1769aa;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .settings-note strong {
+            display: block;
+            color: #e7edf2;
+            font-size: 11px;
+        }
+
+        .settings-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 28px;
+            background: #0d1319;
+            border-top: 1px solid #25303a;
+        }
+
+        .settings-actions button {
+            height: 36px;
+            padding: 0 16px;
+            border: 1px solid #3b4854;
+            border-radius: 9px;
+            background: #1b232b;
+            color: #cbd2d8;
+            font: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .25px;
+            cursor: pointer;
+        }
+
+        .settings-actions button:hover {
+            background: #242e37;
+        }
+
+        .settings-actions .settings-save {
+            min-width: 118px;
+            background: #176fc0;
+            border-color: #2c8bdc;
+            color: white;
+        }
+
+        .settings-actions .settings-save:hover {
+            background: #2181d2;
+        }
+
+        @media (max-width: 700px) {
+            .settings-card {
+                width: 100%;
+            }
+
+            .settings-block {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .settings-section-sub {
+                margin-left: 48px;
+            }
+        }
+    </style>
+
+    <style id="modern-ui-overrides">
+        :root {
+            --bg: #080d12;
+            --panel: #0f161e;
+            --panel-2: #121b24;
+            --surface: #17212b;
+            --surface-hover: #202d39;
+            --border: #263442;
+            --text: #eef3f7;
+            --muted: #7f8d9c;
+            --accent: #2d9cff;
+            --onair: #ef4e57;
+            --take: #b9242b;
+            --take-hover: #d52c34;
+            --ok: #42d77d;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 50% -20%, rgba(37, 91, 137, .12), transparent 38%),
+                linear-gradient(180deg, #080d12, #0a1016);
+        }
+
+        .top-area {
+            left: 18px;
+            right: 18px;
+            top: 14px;
+            height: 61vh;
+            grid-template-columns: minmax(0, 1fr) 196px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel,
+        .status-bar {
+            background: linear-gradient(180deg, #111922 0%, #0d141b 100%);
+            border: 1px solid #273746;
+            border-radius: 10px;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .015);
+            overflow: hidden;
+        }
+
+        .top-title,
+        .sources-title {
+            min-height: 52px;
+            padding: 0 16px;
+            background: linear-gradient(180deg, #141d27, #111820);
+            border-bottom: 1px solid #253442;
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .top-title::before,
+        .sources-title::before {
+            width: 9px;
+            height: 9px;
+            box-shadow: 0 0 12px currentColor
+        }
+
+        .preview-content,
+        .onair-content {
+            background: #111820
+        }
+
+        .preview-panel::after {
+            content: "NO PREVIEW LOADED\A Select a source to preview";
+            white-space: pre;
+            position: absolute;
+            inset: 52px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 2;
+            color: #667482;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .preview-panel:has(#layoutPreview[src]:not([src=""]))::after {
+            display: none
+        }
+
+        #layoutPreview {
+            position: relative;
+            z-index: 1
+        }
+
+        .onair-empty {
+            inset: 52px 0 0;
+            color: #778593;
+            font-size: 12px;
+            gap: 8px
+        }
+
+        .onair-empty::before {
+            content: "◉";
+            font-size: 27px;
+            color: #65727f;
+            margin-bottom: 6px
+        }
+
+        .onair-empty span {
+            font-size: 10px;
+            color: #64717d
+        }
+
+        .control-panel {
+            justify-content: flex-start;
+            padding: 22px 18px;
+            gap: 14px;
+        }
+
+        .control-panel::before {
+            font-size: 13px;
+            font-weight: 750;
+            margin: 8px 0 10px;
+        }
+
+        .control-panel button {
+            height: 62px;
+            min-height: 62px;
+            border-radius: 8px;
+            border: 1px solid #354657;
+            background: linear-gradient(180deg, #1a242e, #151e27);
+            font-size: 12px;
+            font-weight: 750;
+            letter-spacing: .2px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+        }
+
+        .control-panel button:hover:not(:disabled) {
+            background: linear-gradient(180deg, #22303d, #1a2631);
+            border-color: #49627a;
+        }
+
+        #resetButton::before {
+
+            font-size: 23px;
+            margin-right: 14px;
+            vertical-align: -2px
+        }
+
+        #sendToVizButton::before {
+
+            font-size: 20px;
+            margin-right: 12px;
+            vertical-align: -1px
+        }
+
+        #takeButton {
+            height: 62px;
+            min-height: 62px;
+            background: linear-gradient(180deg, #c62930, #a91f25);
+            border-color: #f04a51;
+            box-shadow: 0 0 18px rgba(217, 47, 55, .13), inset 0 1px 0 rgba(255, 255, 255, .12);
+        }
+
+        #takeButton::before {
+
+            font-size: 22px;
+            margin-right: 13px
+        }
+
+        #contButton::before {
+
+            font-size: 22px;
+            margin-right: 13px;
+            vertical-align: -1px
+        }
+
+        #outButton::before {
+
+            font-size: 22px;
+            margin-right: 13px
+        }
+
+        .control-panel button:disabled {
+            opacity: .3
+        }
+
+        .sources-panel {
+            left: 18px;
+            right: 18px;
+            bottom: 68px;
+            height: calc(39vh - 92px);
+            min-height: 190px;
+        }
+
+        .sources-title {
+            min-height: 46px;
+            padding: 0 16px;
+            font-size: 12px
+        }
+
+        .source-grid {
+            gap: 12px;
+            padding: 10px 12px 12px
+        }
+
+        .source-card {
+            border: 1px solid #293846;
+            border-radius: 7px;
+            background: #090e13;
+            position: relative;
+        }
+
+        .source-card::after {
+            content: "NO SIGNAL";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 52%;
+            text-align: center;
+            color: #586572;
+            font-size: 10px;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .source-card::before {
+            content: "▧";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 38%;
+            text-align: center;
+            color: #56636f;
+            font-size: 24px;
+            pointer-events: none;
+        }
+
+        .source-card:has(iframe[src]:not([src=""]))::before,
+        .source-card:has(iframe[src]:not([src=""]))::after {
+            display: none
+        }
+
+        .source-label {
+            height: 38px;
+            padding: 0 12px;
+            background: #121a22;
+            border-bottom: 1px solid #293846;
+            color: #e7edf2;
+            font-size: 11px;
+            font-weight: 750;
+        }
+
+        .source-label span:last-child {
+            font-size: 9px;
+            color: #71808e
+        }
+
+        .source-frame {
+            position: relative;
+            z-index: 1;
+            background: transparent;
+            border-bottom: 2px solid #238fe8
+        }
+
+        .status-bar {
+            left: 18px;
+            right: 18px;
+            bottom: 12px;
+            height: 44px;
+            padding: 0 14px;
+            background: linear-gradient(180deg, #111922, #0e151c);
+            border-color: #263746;
+            font-size: 10px;
+        }
+
+        .status-group {
+            padding: 0 18px;
+            gap: 7px;
+            border-color: #31404e
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            box-shadow: 0 0 10px rgba(66, 215, 125, .25)
+        }
+
+        .status-dot.off {
+            box-shadow: 0 0 10px rgba(216, 74, 74, .25)
+        }
+
+        .status-name {
+            font-size: 11px
+        }
+
+        #mseStatusText {
+            color: inherit;
+        }
+
+        #engineStatusText {
+            color: inherit;
+        }
+
+        .status-action {
+            height: 30px;
+            padding: 0 13px;
+            margin-left: 8px;
+            border-radius: 6px;
+            border: 1px solid #326a96;
+            background: #111c26;
+            color: #e2eaf0;
+            cursor: pointer;
+        }
+
+        .status-action:hover {
+            background: #172738;
+            border-color: #3b8dcc
+        }
+
+        .status-action:first-of-type::before {
+            content: "⚙";
+            color: #43a9f2;
+            margin-right: 7px
+        }
+
+        .status-action:last-of-type::before {
+            content: "↻";
+            color: #43a9f2;
+            margin-right: 7px
+        }
+
+        @media(max-width:1200px) {
+            .top-area {
+                grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
+                gap: 9px
+            }
+
+            .control-panel {
+                padding: 14px 10px;
+                gap: 9px
+            }
+
+            .control-panel button,
+            #takeButton {
+                height: 50px;
+                min-height: 50px
+            }
+
+            .source-grid {
+                gap: 6px;
+                padding: 7px
+            }
+        }
+    </style>
+
+
+    <style id="flat-clean-fixes">
+        /* Flat status/title indicators: no glow */
+        .top-title::before,
+        .sources-title::before,
+        .status-dot,
+        .status-dot.off {
+            box-shadow: none !important;
+            filter: none !important;
+        }
+
+        /* Flat panels: remove glow/shadow */
+        .preview-panel,
+        .onair-panel,
+        .control-panel,
+        .sources-panel,
+        .status-bar {
+            box-shadow: none !important;
+        }
+
+        /* Status items live in one continuous bar — no vertical dividers */
+        .status-group {
+            border-right: 0 !important;
+            border-left: 0 !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            padding: 0 14px !important;
+        }
+
+        .status-group:first-child {
+            padding-left: 0 !important;
+        }
+
+        .status-group+.status-group {
+            margin-left: 8px;
+        }
+
+        /* Keep status bar itself clean */
+        .status-bar {
+            gap: 0 !important;
+        }
+    </style>
+
+
+    <style id="final-polish">
+        /* CONTROL: text only */
+        #resetButton::before,
+        #sendToVizButton::before,
+        #takeButton::before,
+        #contButton::before,
+        #outButton::before {
+            content: none !important;
+            display: none !important;
+        }
+
+        /* Keep controls balanced in the tall middle column */
+        .control-panel {
+            justify-content: flex-start !important;
+        }
+
+        /* TAKE stays primary, but less aggressive */
+        #takeButton {
+            background: linear-gradient(180deg, #a9252c, #8f2026) !important;
+            border-color: #b93a41 !important;
+            box-shadow: none !important;
+        }
+
+        #takeButton:hover:not(:disabled) {
+            background: linear-gradient(180deg, #b72b32, #9c2329) !important;
+        }
+
+        /* Input sources: quiet/clean when empty */
+        .source-card::before,
+        .source-card::after {
+            content: none !important;
+            display: none !important;
+        }
+
+        .source-frame {
+            border-bottom: 0 !important;
+            background: #090e13 !important;
+        }
+
+        /* Optional visual state if source cards get selected/active classes later */
+        .source-card.selected,
+        .source-card.active {
+            border-color: #2d8fd8 !important;
+        }
+
+        .source-card.selected .source-label,
+        .source-card.active .source-label {
+            box-shadow: inset 0 -2px 0 #2d8fd8;
+        }
+
+        /* Bottom actions: text only */
+        .status-action::before {
+            content: none !important;
+            display: none !important;
+        }
+    </style>
+
+
+    <style id="connection-status-color-fix">
+        #mseStatusText.connected,
+        #engineStatusText.connected {
+            color: #55d985 !important;
+        }
+
+        #mseStatusText.disconnected,
+        #engineStatusText.disconnected {
+            color: #ef666d !important;
+        }
+    </style>
+
+    <style>
+        .control-panel button {
+            font-size: 12px !important;
+        }
+
+        #takeButton {
+            font-size: 12px !important;
+        }
+    </style>
+
+
+    <style id="layout-templates-preview">
+        /* 100% browser zoom layout: sized to fit a 1920x1080-style viewport without browser zoom-out */
+        .top-area {
+            height: 61vh !important
+        }
+
+        .sources-panel {
+            bottom: calc(9vh + 70px) !important;
+            height: 20vh !important;
+            min-height: 0 !important
+        }
+
+        .layout-templates-panel {
+            position: fixed;
+            left: 18px;
+            right: 18px;
+            bottom: 64px;
+            height: 9vh;
+            min-height: 78px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #111922 0%, #0d141b 100%);
+            border: 1px solid #273746;
+            border-radius: 10px;
+            overflow: hidden
+        }
+
+        .layout-templates-title {
+            height: 24px;
+            min-height: 24px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(180deg, #141d27, #111820);
+            border-bottom: 1px solid #253442;
+            font-size: 9px;
+            font-weight: 750;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            flex-shrink: 0
+        }
+
+        .layout-templates-title::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2d9cff
+        }
+
+        .template-strip {
+            display: flex;
+            gap: 7px;
+            align-items: stretch;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 6px 8px 7px;
+            flex: 1;
+            min-height: 0;
+            scrollbar-width: thin
+        }
+
+        .template-card {
+            width: 91px;
+            min-width: 91px;
+            height: 54px;
+            border: 1px solid #2a3a49;
+            border-radius: 5px;
+            background: #0c131a;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            box-sizing: border-box;
+            overflow: hidden
+        }
+
+        .template-card.selected {
+            border: 2px solid #2d9cff;
+            box-shadow: 0 0 0 1px rgba(45, 156, 255, .22)
+        }
+
+        .template-mini {
+            height: 34px;
+            margin: 4px 4px 2px;
+            border: 1px solid #34495b;
+            background: #121c26;
+            display: grid;
+            gap: 2px;
+            padding: 2px;
+            box-sizing: border-box
+        }
+
+        .template-mini span {
+            display: block;
+            background: #263746;
+            border: 1px solid #40566a;
+            min-width: 0;
+            min-height: 0
+        }
+
+        .template-name {
+            height: 13px;
+            line-height: 13px;
+            text-align: center;
+            font-size: 7px;
+            font-weight: 750;
+            color: #dbe6ef;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 2px
+        }
+
+        .template-selected-status {
+            margin-left: auto;
+            color: #6faee8;
+            font-size: 7px
+        }
+
+        .source-selected-status {
+            margin-left: auto;
+            color: #6faee8;
+            font-size: 7px
+        }
+
+        .source-card.source-selected {
+            border-color: #2d9cff !important;
+            box-shadow: 0 0 0 1px rgba(45, 156, 255, .3) inset
+        }
+
+        .source-card.source-selected .source-title {
+            color: #70b8ff
+        }
+
+        .sources-grid {
+            min-height: 0 !important
+        }
+
+        .template-card:hover {
+            border-color: #4b5966;
+        }
+
+        .template-card.selected {
+            border-color: #2d8fd8;
+        }
+
+        .template-card.selected .template-name {
+            color: #2d8fd8;
+        }
+    </style>
+
+
+    <style id="layout-clean-final">
+        /* Clean 100% zoom composition */
+        :root {
+            --ui-edge: 12px;
+            --ui-gap: 8px;
+            --status-h: 36px;
+            --templates-h: 118px;
+            --sources-h: 190px;
+        }
+
+        .top-area {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            top: var(--ui-edge) !important;
+            height: auto !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap) + var(--templates-h) + var(--ui-gap) + var(--sources-h) + var(--ui-gap)) !important;
+        }
+
+        .sources-panel {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            height: var(--sources-h) !important;
+            min-height: 0 !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap) + var(--templates-h) + var(--ui-gap)) !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+        }
+
+        .layout-templates-panel {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap)) !important;
+            height: var(--templates-h) !important;
+            min-height: 0 !important;
+            border-radius: 8px !important;
+        }
+
+        .status-bar {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            bottom: 8px !important;
+            height: var(--status-h) !important;
+            box-sizing: border-box !important;
+            border-radius: 8px !important;
+        }
+
+        .sources-title,
+        .layout-templates-title {
+            height: 28px !important;
+            min-height: 28px !important;
+            box-sizing: border-box !important;
+            padding: 0 10px !important;
+            gap: 7px !important;
+            line-height: 1 !important;
+        }
+
+        .sources-title .selection-status,
+        .layout-templates-title .selection-status {
+            margin-left: 4px !important;
+            color: #7f94a8 !important;
+            font-size: 8px !important;
+            font-weight: 650 !important;
+        }
+
+        .sources-title .selection-status strong,
+        .layout-templates-title .selection-status strong {
+            color: #9fc8ee !important;
+        }
+
+        .source-grid {
+            padding: 8px !important;
+            gap: 10px !important;
+        }
+
+        .source-card {
+            border-radius: 6px !important;
+            background: #0b1117 !important;
+        }
+
+        .source-label {
+            height: 30px !important;
+            padding: 0 10px !important;
+            font-size: 10px !important;
+            background: #111a23 !important;
+        }
+
+        .template-strip {
+            display: grid !important;
+            grid-template-columns: repeat(19, minmax(84px, 1fr)) !important;
+            align-items: stretch !important;
+            gap: 6px !important;
+            padding: 6px 8px 7px !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+        }
+
+        .template-card {
+            width: auto !important;
+            min-width: 84px !important;
+            height: 76px !important;
+            border-radius: 5px !important;
+        }
+
+        .template-mini {
+            height: 31px !important;
+            margin: 3px 4px 1px !important;
+            gap: 2px !important;
+            padding: 2px !important;
+        }
+
+        .template-name {
+            height: 16px !important;
+            line-height: 16px !important;
+            font-size: 7px !important;
+            letter-spacing: -.05px !important;
+        }
+
+        .template-card.selected {
+            border: 1px solid #2d9cff !important;
+            box-shadow: 0 0 0 1px #2d9cff inset, 0 0 8px rgba(45, 156, 255, .12) !important;
+        }
+
+        /* readable mini-layouts instead of flat stripes */
+        .template-mini.m1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m2 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m3 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m5 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m6 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m7 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m8 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m9 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr)
+        }
+
+        .template-mini.m10 {
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m12 {
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+    </style>
+
+
+    <style id="layout-template-image-overrides">
+        .template-card {
+            position: relative !important;
+        }
+
+        .template-thumb {
+            width: calc(100% - 8px);
+            height: 54px;
+            margin: 4px 4px 2px;
+            display: block;
+            object-fit: contain;
+            object-position: center;
+            box-sizing: border-box;
+            border: 1px solid #34495b;
+            background: #121c26;
+            pointer-events: none;
+        }
+
+        .template-card.selected .template-thumb {
+            border-color: #4aa8ff;
+        }
+    </style>
+
+
+    <style id="f11-layout-rapih-final">
+        :root {
+            --f-edge: 10px;
+            --f-gap: 8px;
+            --f-control: 170px;
+            --f-title: 52px;
+            --f-status: 38px;
+
+            /* Preview stays large and true 16:9, based on available width. */
+            --f-preview-w: calc((100vw - (var(--f-edge) * 2) - var(--f-control) - (var(--f-gap) * 2)) / 2);
+            --f-preview-h: calc(var(--f-preview-w) * 9 / 16);
+            --f-top-h: calc(var(--f-title) + var(--f-preview-h));
+
+            /*
+      Whatever is left below the preview is shared by Sources + Templates.
+      This guarantees they never overlap.
+    */
+            --f-lower-space: calc(100vh - (var(--f-edge) * 2) - var(--f-top-h) - var(--f-status) - (var(--f-gap) * 3));
+
+            --f-template-h: clamp(155px, calc(var(--f-lower-space) * 0.6), 250px);
+        }
+
+        /* One viewport, no scroll. */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden !important;
+        }
+
+        /* ===== TOP ===== */
+        .top-area {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            top: var(--f-edge) !important;
+            bottom: auto !important;
+            height: var(--f-top-h) !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) var(--f-control) minmax(0, 1fr) !important;
+            gap: var(--f-gap) !important;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel {
+            height: var(--f-top-h) !important;
+            min-height: 0 !important;
+        }
+
+        .preview-panel .top-title,
+        .onair-panel .top-title {
+            height: var(--f-title) !important;
+            min-height: var(--f-title) !important;
+            flex: 0 0 var(--f-title) !important;
+        }
+
+        .preview-content,
+        .onair-content {
+            display: block !important;
+            width: 100% !important;
+            height: var(--f-preview-h) !important;
+            min-height: 0 !important;
+            max-height: var(--f-preview-h) !important;
+            flex: 0 0 var(--f-preview-h) !important;
+            aspect-ratio: 16 / 9 !important;
+            margin: 0 !important;
+        }
+
+        .control-panel {
+            min-height: 0 !important;
+        }
+
+        /* ===== STATUS: ALWAYS BOTTOM ===== */
+        .status-bar {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            bottom: var(--f-edge) !important;
+            top: auto !important;
+            height: var(--f-status) !important;
+        }
+
+        /* ===== TEMPLATES ===== */
+        .layout-templates-panel {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap)) !important;
+            top: auto !important;
+            height: var(--f-template-h) !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* ===== SOURCES =====
+   Bound by top preview above and templates below.
+   No fixed/min height -> impossible to collide with templates.
+*/
+        .sources-panel {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            top: calc(var(--f-edge) + var(--f-top-h) + var(--f-gap)) !important;
+            bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap) + var(--f-template-h) + var(--f-gap)) !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* Same compact title height for both lower panels. */
+        .sources-title,
+        .layout-templates-title {
+            height: 27px !important;
+            min-height: 27px !important;
+            flex: 0 0 27px !important;
+        }
+
+        /* Sources consume exactly their panel body. */
+        .source-grid {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            padding: 7px !important;
+            gap: 8px !important;
+        }
+
+        .source-card {
+            min-height: 0 !important;
+        }
+
+        .source-label {
+            height: 28px !important;
+            min-height: 28px !important;
+            flex: 0 0 28px !important;
+        }
+
+        /* Templates: exactly 10 + 9 in two rows, no horizontal scroll. */
+        .template-strip {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: auto !important;
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+            grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+            grid-auto-flow: row !important;
+            gap: 6px !important;
+            padding: 6px !important;
+            overflow: hidden !important;
+        }
+
+        .template-card {
+            width: 100% !important;
+            min-width: 0 !important;
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        .template-thumb {
+            width: calc(100% - 6px) !important;
+            height: calc(100% - 17px) !important;
+            min-height: 0 !important;
+            margin: 2px 3px 0 !important;
+            object-fit: contain !important;
+        }
+
+        .template-name {
+            height: 15px !important;
+            line-height: 15px !important;
+        }
+
+        /* Preview overlays follow the actual 16:9 picture area. */
+        .preview-loading,
+        .onair-empty {
+            top: var(--f-title) !important;
+            bottom: 0 !important;
+            height: auto !important;
+        }
+    </style>
+
+
+    <style id="director-integration-clean">
+        .director-integration .settings-section-icon {
+            display: none !important;
+        }
+
+        .director-integration .settings-section-title {
+            gap: 0 !important;
+            padding-left: 0 !important;
+        }
+
+        .director-integration .settings-section-sub {
+            margin-left: 0 !important;
+        }
+    </style>
+
+    <style id="settings-no-section-circles">
+        /* Clean settings section headers: no circular icons */
+        .settings-section-icon {
+            display: none !important;
+        }
+
+        .settings-section-title {
+            gap: 0 !important;
+        }
+
+        .settings-section-sub {
+            margin-left: 0 !important;
+        }
+
+        .settings-section {
+            padding-left: 0 !important;
+        }
+    </style>
+    <style id="onair-dissolve-out">
+        #onAirPreview {
+            opacity: 1;
+            transition: opacity 800ms ease;
+        }
+
+        #onAirPreview.dissolve-out {
+            opacity: 0;
+        }
+    </style>
+
+
+    <style id="onair-cross-dissolve">
+        .onair-stage {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            height: var(--f-preview-h);
+            background: #111820;
+            overflow: hidden;
+        }
+
+        .onair-stage .onair-layer {
+            position: absolute !important;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: none !important;
+            margin: 0 !important;
+            border: 0;
+            opacity: 0;
+            pointer-events: none;
+            /*for cross dislve*/
+            transition: opacity 500ms ease;
+        }
+
+        .onair-stage .onair-layer.active-layer {
+            opacity: 1;
+        }
+    </style>
+
+
+<style id="true-persistent-2box-index-test">
+.p2-stage{
+    position:absolute; left:0; right:0; top:var(--f-title); bottom:0;
+    z-index:5; display:none;
+    grid-template-columns:repeat(2,1fr); grid-template-rows:1fr;
+    gap:5px; padding:5px; box-sizing:border-box; background:#111820;
+}
+#onAirStage .p2-stage{inset:0}
+.p2-stage.show{display:grid}
+.p2-box{position:relative;min-width:0;min-height:0;overflow:hidden;
+    background:#000;border:1px solid #3a4650;border-radius:6px}
+.p2-box.p2-hidden{visibility:hidden;pointer-events:none}
+.p2-stream{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;pointer-events:none}
+.p2-label{position:absolute;left:8px;bottom:8px;z-index:3;padding:5px 8px;
+    border-radius:4px;background:rgba(0,0,0,.68);color:#fff;font:700 11px Arial}
+.p2-delete{position:absolute;right:9px;top:9px;z-index:4;width:26px;height:26px;padding:0;
+    border:1px solid #455462;border-radius:5px;background:#1b2229;color:#b9c4ce;cursor:pointer}
+.p2-onair-mask{position:absolute;inset:0;z-index:7;background:#111820;display:none}
+.p2-onair-mask.cover{display:block}
+</style>
+
+
+<style id="persistent-preview-cross-dissolve">
+#p2PreviewGhost {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--f-title);
+    bottom: 0;
+    z-index: 8;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 500ms ease;
+    overflow: hidden;
+}
+#p2PreviewGhost.fade-out {
+    opacity: 0;
+}
+#p2PreviewGhost.start {
+    opacity: 1;
+    transition: none;
+}
+#p2PreviewGhost img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    display: block;
+}
+</style>
+
+
+<style id="persistent-preview-box-transitions">
+#p2PreviewStage .p2-box {
+    transition:
+        opacity 500ms ease,
+        transform 500ms ease,
+        left 500ms ease,
+        right 500ms ease,
+        top 500ms ease,
+        bottom 500ms ease;
+}
+#p2PreviewStage.p2-transitioning .p2-box {
+    opacity: .18;
+}
+</style>
+
+
+<style id="persistent-onair-dissolve">
+#p2OnAirStage {
+    opacity: 1;
+    transition: opacity 500ms ease;
+}
+#p2OnAirStage.p2-onair-dissolving {
+    opacity: 0.12;
+}
+</style>
+
+
+<style id="true-onair-cross-bank-css">
+#p2OnAirBankA, #p2OnAirBankB {
+    display: grid;
+    opacity: 0;
+    z-index: 5;
+    transition: opacity 600ms ease;
+}
+#p2OnAirBankA.p2-bank-active,
+#p2OnAirBankB.p2-bank-active {
+    opacity: 1;
+    z-index: 6;
+}
+#p2OnAirBankA.p2-bank-under,
+#p2OnAirBankB.p2-bank-under {
+    opacity: 0;
+    z-index: 5;
+}
+</style>
+
+
+
+<style id="persistent-preview-onair-one-geometry">
+/* ONE geometry: Preview and On Air picture areas are the same rectangle. */
+.preview-panel,
+.onair-panel {
+    position: relative !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+#p2PreviewStage,
+#onAirStage {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: var(--f-title) !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#onAirStage {
+    flex: none !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+}
+
+#p2OnAirBankA,
+#p2OnAirBankB {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#p2PreviewStage,
+#p2OnAirBankA,
+#p2OnAirBankB {
+    padding: 5px !important;
+    gap: 5px !important;
+}
+
+#p2PreviewStage .p2-box,
+#p2OnAirBankA .p2-box,
+#p2OnAirBankB .p2-box {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
+#p2PreviewStage .p2-stream,
+#p2OnAirBankA .p2-stream,
+#p2OnAirBankB .p2-stream {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+}
+</style>
+
+
+<style id="persistent-hidden-box-grid-fix">
+/*
+  IMPORTANT:
+  Hidden persistent AUX boxes must stay alive, but must NOT participate
+  in CSS Grid sizing. visibility:hidden alone still occupies a grid cell
+  and stale grid-row/grid-column values can create implicit rows/columns.
+*/
+#p2PreviewStage .p2-box.p2-hidden,
+#p2OnAirBankA .p2-box.p2-hidden,
+#p2OnAirBankB .p2-box.p2-hidden {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+}
+
+/* Visible boxes return to normal grid participation. */
+#p2PreviewStage .p2-box:not(.p2-hidden),
+#p2OnAirBankA .p2-box:not(.p2-hidden),
+#p2OnAirBankB .p2-box:not(.p2-hidden) {
+    position: relative !important;
+    width: auto !important;
+    height: auto !important;
+}
+</style>
+
+
+<style id="persistent-quick-zoom-dissolve">
+#p2QuickZoomOverlay{
+    position:absolute;
+    left:0;
+    right:0;
+    top:var(--f-title);
+    bottom:0;
+    z-index:80;
+    background:#111820;
+    padding:5px;
+    box-sizing:border-box;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity 500ms ease, visibility 0s linear 500ms;
+}
+#p2QuickZoomOverlay.show{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transition:opacity 500ms ease;
+}
+#p2QuickZoomOverlay.closing{
+    opacity:0;
+    visibility:visible;
+    pointer-events:none;
+}
+#p2QuickZoomStream{
+    position:relative;
+    width:100%;
+    height:100%;
+    border:1px solid #3a4650;
+    border-radius:6px;
+    box-sizing:border-box;
+    background:#000;
+    overflow:hidden;
+}
+#p2QuickZoomStream .p2-qz-player{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:0;
+    visibility:hidden;
+    opacity:0;
+    pointer-events:none;
+}
+#p2QuickZoomLabel{
+    position:absolute;
+    left:13px;
+    bottom:13px;
+    z-index:3;
+    padding:6px 9px;
+    color:#fff;
+    background:rgba(0,0,0,.68);
+    border-radius:4px;
+    font:700 12px Arial,sans-serif;
+}
+#p2QuickZoomActions{
+    position:absolute;
+    right:13px;
+    bottom:13px;
+    z-index:4;
+    display:flex;
+    gap:7px;
+}
+#p2QuickZoomActions button{
+    height:32px;
+    padding:0 15px;
+    border:1px solid rgba(92,108,121,.78);
+    border-radius:5px;
+    background:rgba(24,32,39,.92);
+    color:#dce4ea;
+    font:800 10px Arial,sans-serif;
+    cursor:pointer;
+}
+#p2QuickZoomSend{
+    min-width:116px;
+    background:rgba(40,123,196,.94)!important;
+    border-color:#3b98e8!important;
+    color:#fff!important;
+}
+</style>
+
+</head>
+<!--
+<body class="hide-sources">
+    -->
+
+<body class="hide-sources">
+    <div class="top-area">
+        <div class="preview-panel">
+            <div class="top-title">Layout Preview</div>
+
+            <div id="previewLoading" class="preview-loading">
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    <div>Loading preview...</div>
+                </div>
+            </div>
+
+            <iframe id="layoutPreview" class="preview-content" frameborder="0"></iframe>
+            <div id="p2PreviewStage" class="p2-stage"></div>
+<div id="p2QuickZoomOverlay">
+    <div id="p2QuickZoomStream"></div>
+    <div id="p2QuickZoomLabel"></div>
+    <div id="p2QuickZoomActions">
+        <button id="p2QuickZoomCancel" type="button">CANCEL</button>
+    </div>
+</div>
+            <div id="p2PreviewGhost"></div>
+        </div>
+
+        <div class="control-panel">
+            <button id="resetButton" type="button" onclick="resetLayout()">BACK</button>
+            <button id="takeButton" type="button" onclick="takeElement()" disabled>TAKE</button>
+            <button id="contButton" type="button" disabled hidden>CONTINUE</button>
+            <button id="outButton" type="button" onclick="takeOutElement()" disabled>OUT</button>
+            <button id="cleanupButton" type="button" onclick="cleanupPlaylist()" hidden>CLEAN UP</button>
+        </div>
+
+        <div class="onair-panel">
+            <div class="top-title">On Air Preview</div>
+            <div id="onAirEmpty" class="onair-empty">
+                <div>NO ACTIVE OUTPUT</div>
+                <span>Waiting for TAKE</span>
+            </div>
+            <div id="onAirStage" class="onair-stage">
+                <iframe id="onAirPreviewA" class="onair-content onair-layer active-layer" frameborder="0"></iframe>
+                <iframe id="onAirPreviewB" class="onair-content onair-layer" frameborder="0"></iframe>
+                <div id="p2OnAirBankA" class="p2-stage p2-onair p2-bank"></div>
+                <div id="p2OnAirBankB" class="p2-stage p2-onair p2-bank"></div>
+                <div id="p2OnAirMask" class="p2-onair-mask cover"></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="sources-panel" aria-label="Input Sources">
+        <div class="sources-title">Input Sources <span class="selection-status">SELECTED: <strong
+                    id="selectedSourceStatus">NONE</strong></span></div>
+        <div class="source-grid">
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 01</span><span>IFRAME</span></div><iframe id="input01"
+                    class="source-frame" title="Input 01" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 02</span><span>IFRAME</span></div><iframe id="input02"
+                    class="source-frame" title="Input 02" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 03</span><span>IFRAME</span></div><iframe id="input03"
+                    class="source-frame" title="Input 03" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 04</span><span>IFRAME</span></div><iframe id="input04"
+                    class="source-frame" title="Input 04" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 05</span><span>IFRAME</span></div><iframe id="input05"
+                    class="source-frame" title="Input 05" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 06</span><span>IFRAME</span></div><iframe id="input06"
+                    class="source-frame" title="Input 06" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 07</span><span>IFRAME</span></div><iframe id="input07"
+                    class="source-frame" title="Input 07" frameborder="0"></iframe>
+            </div>
+            <div class="source-card">
+                <div class="source-label"><span>INPUT 08</span><span>IFRAME</span></div><iframe id="input08"
+                    class="source-frame" title="Input 08" frameborder="0"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <section class="layout-templates-panel" aria-label="Layout Templates">
+        <div class="layout-templates-title">Layout Templates <span class="selection-status">SELECTED: <strong
+                    id="selectedTemplateStatus">NONE</strong></span></div>
+        <div class="template-strip">
+            <div class="template-card" data-template="1BOX"><img class="template-thumb" src="/template_images/1BOX.png"
+                    alt="1BOX" draggable="false">
+                <div class="template-name">1BOX</div>
+            </div>
+            <div class="template-card" data-template="2BOX"><img class="template-thumb" src="/template_images/2BOX.png"
+                    alt="2BOX" draggable="false">
+                <div class="template-name">2BOX</div>
+            </div>
+            <div class="template-card" data-template="2BOX_BIG_SMALL"><img class="template-thumb"
+                    src="/template_images/2BOX_BIG_SMALL.png" alt="2BOX_BIG_SMALL" draggable="false">
+                <div class="template-name">2BOX_BIG_SMALL</div>
+            </div>
+            <div class="template-card" data-template="3BOX"><img class="template-thumb" src="/template_images/3BOX.png"
+                    alt="3BOX" draggable="false">
+                <div class="template-name">3BOX</div>
+            </div>
+            <div class="template-card" data-template="3BOX_SP"><img class="template-thumb"
+                    src="/template_images/3BOX_SP.png" alt="3BOX_SP" draggable="false">
+                <div class="template-name">3BOX_SP</div>
+            </div>
+            <div class="template-card" data-template="4BOX"><img class="template-thumb" src="/template_images/4BOX.png"
+                    alt="4BOX" draggable="false">
+                <div class="template-name">4BOX</div>
+            </div>
+            <div class="template-card" data-template="5BOX"><img class="template-thumb" src="/template_images/5BOX.png"
+                    alt="5BOX" draggable="false">
+                <div class="template-name">5BOX</div>
+            </div>
+            <div class="template-card" data-template="6BOX"><img class="template-thumb" src="/template_images/6BOX.png"
+                    alt="6BOX" draggable="false">
+                <div class="template-name">6BOX</div>
+            </div>
+            <div class="template-card" data-template="7BOX"><img class="template-thumb" src="/template_images/7BOX.png"
+                    alt="7BOX" draggable="false">
+                <div class="template-name">7BOX</div>
+            </div>
+            <div class="template-card" data-template="7BOX_CENTER"><img class="template-thumb"
+                    src="/template_images/7BOX_CENTER.png" alt="7BOX_CENTER" draggable="false">
+                <div class="template-name">7BOX_CENTER</div>
+            </div>
+            <div class="template-card" data-template="8BOX"><img class="template-thumb" src="/template_images/8BOX.png"
+                    alt="8BOX" draggable="false">
+                <div class="template-name">8BOX</div>
+            </div>
+            <div class="template-card" data-template="9BOX"><img class="template-thumb" src="/template_images/9BOX.png"
+                    alt="9BOX" draggable="false">
+                <div class="template-name">9BOX</div>
+            </div>
+            <div class="template-card" data-template="10BOX"><img class="template-thumb"
+                    src="/template_images/10BOX.png" alt="10BOX" draggable="false">
+                <div class="template-name">10BOX</div>
+            </div>
+            <div class="template-card" data-template="12BOX"><img class="template-thumb"
+                    src="/template_images/12BOX.png" alt="12BOX" draggable="false">
+                <div class="template-name">12BOX</div>
+            </div>
+            <div class="template-card" data-template="1BOX_SP"><img class="template-thumb"
+                    src="/template_images/1BOX_SP.png" alt="1BOX_SP" draggable="false">
+                <div class="template-name">1BOX_SP</div>
+            </div>
+            <div class="template-card" data-template="1BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/1BOX_SP_V.png" alt="1BOX_SP_V" draggable="false">
+                <div class="template-name">1BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="2BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/2BOX_SP_V.png" alt="2BOX_SP_V" draggable="false">
+                <div class="template-name">2BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="3BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/3BOX_SP_V.png" alt="3BOX_SP_V" draggable="false">
+                <div class="template-name">3BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="4BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/4BOX_SP_V.png" alt="4BOX_SP_V" draggable="false">
+                <div class="template-name">4BOX_SP_V</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="status-bar" aria-label="System Status">
+        <div class="status-group">
+            <span id="mseStatusDot" class="status-dot"></span>
+            <span class="status-name">MSE</span>
+            <span id="mseStatusText" class="status-value">Checking...</span>
+            <span id="mseStatusAddress">-</span>
+        </div>
+        <div class="status-group">
+            <span id="engineStatusDot" class="status-dot"></span>
+            <span class="status-name">ENGINE</span>
+            <span id="engineStatusText" class="status-value">Checking...</span>
+            <span id="engineStatusAddress">-</span>
+        </div>
+        <div class="status-group">
+            <span class="status-name">PLAYLIST</span>
+            <span id="playlistStatus" class="status-value">active</span>
+        </div>
+        <div class="status-group">
+            <span class="status-name">PROFILE</span>
+            <span id="profileStatus" class="status-value">default</span>
+        </div>
+        <div class="status-spacer"></div>
+        <button class="status-action" type="button" onclick="openSettings()">SETTINGS</button>
+        <button class="status-action" type="button" onclick="reconnectServices()">RECONNECT</button>
+    </div>
+
+    <div id="settingsModal" class="settings-modal" onclick="if(event.target===this) closeSettings()">
+        <div class="settings-card">
+            <div class="settings-head">
+                <span class="settings-gear">⚙</span>
+                <span>SYSTEM SETTINGS</span>
+                <button class="settings-close" type="button" onclick="closeSettings()" aria-label="Close">×</button>
+            </div>
+
+            <div class="settings-body">
+                <div class="settings-block">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>MSE</span>
+                        </div>
+                        <div class="settings-section-sub">Media Sequencer<br>connection</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Host</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMseHost" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Port</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMsePort" type="number">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Profile</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingMseProfile" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-block engine">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>VIZ ENGINE</span>
+                        </div>
+                        <div class="settings-section-sub">Viz Engine command<br>listener</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Host</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingEngineHost" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                        <label class="settings-row">
+                            <span>Port</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingEnginePort" type="number">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-block playlist">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>PLAYLIST ID</span>
+                        </div>
+                        <div class="settings-section-sub"></div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-row">
+                            <span>Playlist ID</span>
+                            <span class="settings-input-wrap">
+                                <input id="settingPlaylistId" autocomplete="off">
+                                <span class="settings-check">✓</span>
+                            </span>
+                        </label>
+                    </div>
+
+                </div>
+
+                <div class="settings-block director-integration">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>DIRECTOR INTEGRATION</span>
+                        </div>
+                        <div class="settings-section-sub">Viz Pilot Director events</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-toggle-row">
+                            <span class="settings-toggle-copy">
+                                <strong>Receive Director Events</strong>
+                                <small>Accept preview events sent by Viz Pilot Director</small>
+                            </span>
+                            <input id="settingReceiveDirector" type="checkbox">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button" onclick="closeSettings()">CANCEL</button>
+                    <button class="settings-save" type="button" onclick="saveSettings()">SAVE SETTINGS</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container" style="background: white; display:none">
+            <div class="panel">
+                <h3 class="panel-header">
+                    <span>Playlists</span>
+                    <button type="button" onclick="refreshMSE()">REFRESH</button>
+                </h3>
+                <div id="playlistList"></div>
+            </div>
+
+            <div class="panel">
+                <h3>Elements</h3>
+                <div id="elementList">Select playlist</div>
+            </div>
+        </div>
+
+        <script>
+            const atom = "http://www.w3.org/2005/Atom";
+            let selectedElementId = null;
+            let selectedElementUrl = null;
+            let selectedPlaylistUuid = null;
+            let currentLayoutData = null;
+            let originalLayoutData = null;
+            let onAirLayoutData = null;
+
+            let layoutEdited = false;
+
+            const elementCache = new Map();
+            //setbox from json
+            const boxLayouts = [
+                { boxType: 0, boxTypeName: "1BOX", count: 1 },
+                { boxType: 1, boxTypeName: "2BOX", count: 2 },
+                { boxType: 2, boxTypeName: "2BOX_BIG_SMALL", count: 2 },
+                { boxType: 3, boxTypeName: "3BOX", count: 3 },
+                { boxType: 4, boxTypeName: "3BOX_SP", count: 3 },
+                { boxType: 5, boxTypeName: "4BOX", count: 4 },
+                { boxType: 6, boxTypeName: "5BOX", count: 5 },
+                { boxType: 7, boxTypeName: "6BOX", count: 6 },
+                { boxType: 8, boxTypeName: "7BOX", count: 7 },
+                { boxType: 9, boxTypeName: "7BOX_CENTER", count: 7 },
+                { boxType: 10, boxTypeName: "8BOX", count: 8 },
+                { boxType: 11, boxTypeName: "9BOX", count: 9 },
+                { boxType: 12, boxTypeName: "10BOX", count: 10 },
+                { boxType: 13, boxTypeName: "12BOX", count: 12 },
+                { boxType: 14, boxTypeName: "1BOX_SP", count: 1 },
+                { boxType: 15, boxTypeName: "1BOX_SP_V", count: 1 },
+                { boxType: 16, boxTypeName: "2BOX_SP_V", count: 2 },
+                { boxType: 17, boxTypeName: "3BOX_SP_V", count: 3 },
+                { boxType: 18, boxTypeName: "4BOX_SP_V", count: 4 }
+            ];
+
+            function extractLayoutFromPayload(payload) {
+                const xml = new DOMParser().parseFromString(
+                    payload,
+                    "application/xml"
+                );
+
+                const fields = [...xml.getElementsByTagName("field")];
+                const elementField = fields.find(
+                    field => field.getAttribute("name") === "elementId"
+                );
+
+                selectedElementId =
+                    elementField?.getElementsByTagName("value")[0]?.textContent?.trim() || null;
+
+                console.log("ELEMENT ID FROM PAYLOAD:", selectedElementId);
+
+                const layoutField = fields.find(
+                    field => field.getAttribute("name") === "setBoxes"
+                );
+
+                if (!layoutField) {
+                    console.error("SetBoxes field not found");
+                    return null;
+                }
+
+                const layoutIndex = Number(
+                    layoutField.getElementsByTagName("value")[0]?.textContent
+                );
+
+                const layout = boxLayouts[layoutIndex];
+
+                if (!layout) {
+                    console.error("Invalid layout index:", layoutIndex);
+                    return null;
+                }
+
+                const boxOrder = [];
+
+                for (let i = 0; i < layout.count; i++) {
+                    boxOrder.push({
+                        box: `BOX_${String(i + 1).padStart(2, "0")}`,
+                        input: i
+                    });
+                }
+
+                return {
+                    boxType: layout.boxType,
+                    boxTypeName: layout.boxTypeName,
+                    boxOrder: boxOrder
+                };
+            }
+            //////
+            //buttton
+            function updateActionButtons() {
+                const takeButton = document.getElementById("takeButton");
+                const contButton = document.getElementById("contButton");
+                const outButton = document.getElementById("outButton");
+
+                const hasPayload = currentLayoutData !== null;
+
+                takeButton.disabled = !hasPayload;
+                contButton.disabled = !hasPayload;
+                outButton.disabled = !hasPayload;
+            }
+
+            function resetLayout() {
+                if (!originalLayoutData) {
+                    return;
+                }
+
+                quickZoomPendingData = null;
+                persistentQuickZoomInput = null;
+                const qzOverlay = document.getElementById("p2QuickZoomOverlay");
+                if (qzOverlay) {
+                    qzOverlay.classList.remove("show", "closing");
+                    qzOverlay.querySelectorAll(".p2-qz-player").forEach(player => {
+                        player.style.visibility = "hidden";
+                        player.style.opacity = "0";
+                    });
+                }
+
+                currentLayoutData = structuredClone(originalLayoutData);
+
+                layoutEdited = false;
+
+                updateActionButtons();
+                showLayoutPreview(currentLayoutData);
+
+                console.log("RESET TO ORIGINAL:", currentLayoutData);
+            }
+            //onair preview
+            ///
+
+            function createPersistentInput(stage, input, onair) {
+                let box = stage.querySelector(`.p2-box[data-input="${input}"]`);
+                if (box) return box;
+
+                box = document.createElement("div");
+                box.className = "p2-box p2-hidden";
+                box.dataset.input = String(input);
+
+                const stream = document.createElement("iframe");
+                stream.className = "p2-stream";
+                stream.src = `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+                stream.allow = "autoplay; fullscreen";
+                stream.frameBorder = "0";
+
+                const label = document.createElement("div");
+                label.className = "p2-label";
+                box.append(stream, label);
+
+                if (!onair) {
+                    const del = document.createElement("button");
+                    del.className = "p2-delete";
+                    del.type = "button";
+                    del.textContent = "×";
+                    del.addEventListener("click", event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const boxName = box.dataset.box;
+                        if (!boxName) return;
+                        box.classList.add("p2-hidden");
+                        window.postMessage({ action: "deleteBox", boxName }, "*");
+                    });
+                    box.appendChild(del);
+
+                    box.addEventListener("dblclick", event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openPersistentQuickZoom(input);
+                    });
+                }
+
+                stage.appendChild(box);
+                return box;
+            }
+
+            function initTruePersistent2BoxStage(stageId, onair) {
+                const stage = document.getElementById(stageId);
+                if (!stage || stage.dataset.ready === "1") return stage;
+
+                // FULL STARTUP CACHE TEST:
+                // Every persistent stage gets AUX1-AUX12 once at app startup.
+                // No source is created during an operator action.
+                for (let input = 0; input < 12; input++) {
+                    createPersistentInput(stage, input, onair);
+                }
+
+                stage.dataset.ready = "1";
+                return stage;
+            }
+
+            let persistentQuickZoomInput = null;
+            let quickZoomPendingData = null;
+
+            function openPersistentQuickZoom(input) {
+                const overlay = document.getElementById("p2QuickZoomOverlay");
+                const stream = document.getElementById("p2QuickZoomStream");
+                const label = document.getElementById("p2QuickZoomLabel");
+                if (!overlay || !stream || !label) return;
+
+                persistentQuickZoomInput = input;
+                quickZoomPendingData = {
+                    boxType: 0,
+                    boxTypeName: "1BOX",
+                    boxOrder: [{ box: "BOX_01", input }]
+                };
+                label.textContent = `BOX 01 · LIVE INPUT ${input + 1}`;
+                updateActionButtons();
+
+                stream.querySelectorAll(".p2-qz-player").forEach((player, index) => {
+                    const selected = index === input;
+                    player.style.visibility = selected ? "visible" : "hidden";
+                    player.style.opacity = selected ? "1" : "0";
+                });
+
+                overlay.classList.remove("closing");
+                requestAnimationFrame(() => overlay.classList.add("show"));
+            }
+
+            function closePersistentQuickZoom() {
+                const overlay = document.getElementById("p2QuickZoomOverlay");
+                const stream = document.getElementById("p2QuickZoomStream");
+                if (!overlay || !overlay.classList.contains("show")) return;
+
+                overlay.classList.remove("show");
+                overlay.classList.add("closing");
+
+                setTimeout(() => {
+                    overlay.classList.remove("closing");
+                    stream.querySelectorAll(".p2-qz-player").forEach(player => {
+                        player.style.visibility = "hidden";
+                        player.style.opacity = "0";
+                    });
+                    persistentQuickZoomInput = null;
+                    quickZoomPendingData = null;
+                    updateActionButtons();
+                }, 500);
+            }
+
+            document.getElementById("p2QuickZoomCancel")?.addEventListener("click", closePersistentQuickZoom);
+
+            const persistentLayoutRules = {"7BOX_CENTER":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_06":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"2/span 2","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_07":{"col":"1/span 1","row":"2/span 1"},"BOX_05":{"col":"2/span 1","row":"2/span 1"},"BOX_04":{"col":"3/span 1","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"3BOX_SP":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_01":{"col":"1/span 2","row":"1/span 1"},"BOX_02":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"}}},"2BOX_BIG_SMALL":{"cols":"repeat(3, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 2"},"BOX_01":{"col":"2/span 2","row":"1/span 2"}}},"3BOX":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"1/span 1","row":"2/span 1"},"BOX_01":{"col":"2/span 1","row":"1/span 2"}}},"4BOX":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 1"},"BOX_01":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"}}},"5BOX":{"cols":"repeat(3, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_04":{"col":"1/span 1","row":"1/span 1"},"BOX_02":{"col":"2/span 1","row":"1/span 1"},"BOX_05":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"},"BOX_01":{"col":"3/span 1","row":"1/span 2"}}},"6BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_05":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"2/span 2","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_06":{"col":"1/span 1","row":"2/span 1"},"BOX_04":{"col":"2/span 2","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"7BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_06":{"col":"1/span 1","row":"1/span 1"},"BOX_04":{"col":"2/span 1","row":"1/span 1"},"BOX_02":{"col":"3/span 1","row":"1/span 1"},"BOX_07":{"col":"1/span 1","row":"2/span 1"},"BOX_05":{"col":"2/span 1","row":"2/span 1"},"BOX_03":{"col":"3/span 1","row":"2/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 2"}}},"8BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_07":{"col":"1/span 1","row":"1/span 1"},"BOX_05":{"col":"2/span 1","row":"1/span 1"},"BOX_03":{"col":"3/span 1","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_08":{"col":"1/span 1","row":"2/span 1"},"BOX_06":{"col":"2/span 1","row":"2/span 1"},"BOX_04":{"col":"3/span 1","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"9BOX":{"cols":"repeat(5, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_08":{"col":"1/span 1","row":"1/span 1"},"BOX_06":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"3/span 1","row":"1/span 1"},"BOX_02":{"col":"4/span 1","row":"1/span 1"},"BOX_09":{"col":"1/span 1","row":"2/span 1"},"BOX_07":{"col":"2/span 1","row":"2/span 1"},"BOX_05":{"col":"3/span 1","row":"2/span 1"},"BOX_03":{"col":"4/span 1","row":"2/span 1"},"BOX_01":{"col":"5/span 1","row":"1/span 2"}}},"10BOX":{"cols":"repeat(5, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_09":{"col":"1/span 1","row":"1/span 1"},"BOX_07":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"3/span 1","row":"1/span 1"},"BOX_03":{"col":"4/span 1","row":"1/span 1"},"BOX_01":{"col":"5/span 1","row":"1/span 1"},"BOX_10":{"col":"1/span 1","row":"2/span 1"},"BOX_08":{"col":"2/span 1","row":"2/span 1"},"BOX_06":{"col":"3/span 1","row":"2/span 1"},"BOX_05":{"col":"4/span 1","row":"2/span 1"},"BOX_02":{"col":"5/span 1","row":"2/span 1"}}},"12BOX":{"cols":"repeat(6, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_11":{"col":"1/span 1","row":"1/span 1"},"BOX_09":{"col":"2/span 1","row":"1/span 1"},"BOX_07":{"col":"3/span 1","row":"1/span 1"},"BOX_05":{"col":"4/span 1","row":"1/span 1"},"BOX_03":{"col":"5/span 1","row":"1/span 1"},"BOX_01":{"col":"6/span 1","row":"1/span 1"},"BOX_12":{"col":"1/span 1","row":"2/span 1"},"BOX_10":{"col":"2/span 1","row":"2/span 1"},"BOX_08":{"col":"3/span 1","row":"2/span 1"},"BOX_06":{"col":"4/span 1","row":"2/span 1"},"BOX_04":{"col":"5/span 1","row":"2/span 1"},"BOX_02":{"col":"6/span 1","row":"2/span 1"}}}};
+            const persistentLayoutNames = new Set(["1BOX","2BOX","2BOX_BIG_SMALL","3BOX","4BOX","5BOX","6BOX","7BOX","3BOX_SP","7BOX_CENTER","8BOX","9BOX","10BOX","12BOX"]);
+
+            function renderTruePersistent2Box(stageId, data, onair) {
+                const stage = initTruePersistent2BoxStage(stageId, onair);
+                if (!stage || !data || !persistentLayoutNames.has(data.boxTypeName)) return false;
+
+                const usedInputs = new Set();
+
+                // On Air banks are lazy + cached. Preview already has AUX1-AUX12 hot.
+                if (onair) {
+                    data.boxOrder.forEach(item => {
+                        if (item.input < 0 || item.input > 11) return;
+                        createPersistentInput(stage, item.input, true);
+                    });
+                }
+
+                if (data.boxTypeName === "1BOX") {
+                    stage.style.gridTemplateColumns = "1fr";
+                    stage.style.gridTemplateRows = "1fr";
+                } else if (data.boxTypeName === "2BOX") {
+                    stage.style.gridTemplateColumns = "repeat(2, 1fr)";
+                    stage.style.gridTemplateRows = "1fr";
+                } else {
+                    const rule = persistentLayoutRules[data.boxTypeName];
+                    stage.style.gridTemplateColumns = rule.cols;
+                    stage.style.gridTemplateRows = rule.rows;
+                }
+
+                data.boxOrder.forEach(item => {
+                    if (item.input < 0 || item.input > 11) return;
+
+                    const box = stage.querySelector(`.p2-box[data-input="${item.input}"]`);
+                    if (!box) return;
+
+                    usedInputs.add(item.input);
+                    box.dataset.box = item.box;
+                    box.classList.remove("p2-hidden");
+
+                    const stream = box.querySelector(".p2-stream");
+                    if (stream) {
+                        let sourceScale = 1;
+                    //scale source fits box
+                        if (data.boxTypeName === "2BOX") {
+                            if (item.box === "BOX_01") sourceScale = 2;
+                            if (item.box === "BOX_02") sourceScale = 2;
+                        }
+
+                        if (data.boxTypeName === "2BOX_BIG_SMALL") {
+                            if (item.box === "BOX_01") sourceScale = 1.5;
+                            if (item.box === "BOX_02") sourceScale = 3;
+                        }
+
+                        if (data.boxTypeName === "3BOX") {
+                            if (item.box === "BOX_01") sourceScale = 2;
+                            if (item.box === "BOX_02") sourceScale = 1.1;
+                            if (item.box === "BOX_03") sourceScale = 1.1;
+                        }
+
+                        if (data.boxTypeName === "3BOX_SP") {
+                            if (item.box === "BOX_01") sourceScale = 2.2;
+                            if (item.box === "BOX_02") sourceScale = 1.1;
+                            if (item.box === "BOX_03") sourceScale = 1.1;
+                        }
+
+                        if (data.boxTypeName === "4BOX") {
+                            if (item.box === "BOX_01") sourceScale = 1.1;
+                            if (item.box === "BOX_02") sourceScale = 1.1;
+                            if (item.box === "BOX_03") sourceScale = 1.1;
+                            if (item.box === "BOX_04") sourceScale = 1.1;
+                        }
+
+                        if (data.boxTypeName === "5BOX") {
+                            if (item.box === "BOX_01") sourceScale = 3;
+                            if (item.box === "BOX_02") sourceScale = 1.6;
+                            if (item.box === "BOX_03") sourceScale = 1.6;
+                            if (item.box === "BOX_04") sourceScale = 1.6;
+                            if (item.box === "BOX_05") sourceScale = 1.6;
+                        }
+
+                        if (["8BOX", "10BOX", "12BOX"].includes(data.boxTypeName)) {
+                            sourceScale = 1.1;
+                        }
+
+                        if (data.boxTypeName === "9BOX") {
+                            sourceScale = item.box === "BOX_01" ? 3 : 1.6;
+                        }
+
+                        stream.style.transform = `scale(${sourceScale})`;
+                        stream.style.transformOrigin = "center center";
+                    }
+
+                    if (data.boxTypeName === "1BOX") {
+                        box.style.gridColumn = "1 / span 1";
+                        box.style.gridRow = "1 / span 1";
+                    } else if (data.boxTypeName === "2BOX") {
+                        box.style.gridColumn = item.box === "BOX_01" ? "2 / span 1" : "1 / span 1";
+                        box.style.gridRow = "1 / span 1";
+                    } else {
+                        const rule = persistentLayoutRules[data.boxTypeName];
+                        const pos = rule.boxes[item.box];
+                        if (!pos) {
+                            box.classList.add("p2-hidden");
+                            return;
+                        }
+                        box.style.gridColumn = pos.col;
+                        box.style.gridRow = pos.row;
+                    }
+
+                    box.querySelector(".p2-label").textContent =
+                        `${item.box.replace("_", " ")} · LIVE INPUT ${item.input + 1}`;
+                });
+
+                stage.querySelectorAll(".p2-box").forEach(box => {
+                    if (!usedInputs.has(Number(box.dataset.input))) {
+                        box.classList.add("p2-hidden");
+                    }
+                });
+
+                stage.classList.add("show");
+                return true;
+            }
+
+            // FULL STARTUP CACHE TEST:
+            // Quick Zoom also keeps AUX1-AUX12 connected from startup.
+            (() => {
+                const host = document.getElementById("p2QuickZoomStream");
+                if (host && host.dataset.ready !== "1") {
+                    for (let input = 0; input < 12; input++) {
+                        const player = document.createElement("iframe");
+                        player.className = "p2-qz-player";
+                        player.src = `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+                        player.allow = "autoplay; fullscreen";
+                        player.frameBorder = "0";
+                        host.appendChild(player);
+                    }
+                    host.dataset.ready = "1";
+                }
+            })();
+
+            // Preview + On Air A + On Air B all preload AUX1-AUX12 once.
+            initTruePersistent2BoxStage("p2PreviewStage", false);
+            initTruePersistent2BoxStage("p2OnAirBankA", true);
+            initTruePersistent2BoxStage("p2OnAirBankB", true);
+
+            function showLayoutPreview(data) {
+                const preview = document.getElementById("layoutPreview");
+                const loading = document.getElementById("previewLoading");
+                const p2Stage = document.getElementById("p2PreviewStage");
+
+                if (data && persistentLayoutNames.has(data.boxTypeName)) {
+                    loading.classList.remove("show");
+                    preview.style.display = "none";
+
+                    const stage = document.getElementById("p2PreviewStage");
+                    const alreadyVisible = stage.classList.contains("show");
+
+                    if (!alreadyVisible) {
+                        renderTruePersistent2Box("p2PreviewStage", data, false);
+                        return;
+                    }
+
+                    // Preview-only dissolve using the SAME persistent players.
+                    // No iframe is recreated and no stream src is changed.
+                    stage.classList.add("p2-transitioning");
+
+                    setTimeout(() => {
+                        renderTruePersistent2Box("p2PreviewStage", data, false);
+
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                stage.classList.remove("p2-transitioning");
+                            });
+                        });
+                    }, 250);
+
+                    return;
+                }
+
+                p2Stage.classList.remove("show");
+                preview.style.display = "";
+                loading.classList.add("show");
+
+                // Hide the new preview before the iframe starts loading.
+                preview.style.transition = "none";
+                preview.style.opacity = "0";
+
+                preview.onload = () => {
+                    // Render the selected box layout first.
+                    preview.contentWindow.postMessage(data, "*");
+
+                    // Give the iframe a moment to apply postMessage/render its boxes.
+                    setTimeout(() => {
+                        loading.classList.remove("show");
+
+                        // Force opacity:0 to be committed before starting the dissolve.
+                        preview.getBoundingClientRect();
+
+                        preview.style.transition = "opacity 700ms ease";
+                        preview.style.opacity = "1";
+                    }, 100);
+                };
+
+                preview.src = `/layouts/${data.boxTypeName}.html`;
+            }
+
+            let activeOnAirLayer = "A";
+            let onAirTransitionToken = 0;
+
+            let persistentOnAirBank = "A";
+            let persistentOnAirHasOutput = false;
+
+            function showOnAirPreview(data) {
+                const empty = document.getElementById("onAirEmpty");
+                const p2Mask = document.getElementById("p2OnAirMask");
+
+                if (data && persistentLayoutNames.has(data.boxTypeName)) {
+                    ++onAirTransitionToken;
+                    if (empty) empty.style.display = "none";
+
+                    document.getElementById("onAirPreviewA").style.display = "none";
+                    document.getElementById("onAirPreviewB").style.display = "none";
+
+                    const bankA = document.getElementById("p2OnAirBankA");
+                    const bankB = document.getElementById("p2OnAirBankB");
+
+                    if (!persistentOnAirHasOutput || p2Mask.classList.contains("cover")) {
+                        const first = persistentOnAirBank === "A" ? bankA : bankB;
+                        renderTruePersistent2Box(first.id, data, true);
+
+                        bankA.classList.remove("p2-bank-active", "p2-bank-under");
+                        bankB.classList.remove("p2-bank-active", "p2-bank-under");
+
+                        first.classList.add("p2-bank-active");
+                        (first === bankA ? bankB : bankA).classList.add("p2-bank-under");
+
+                        p2Mask.classList.remove("cover");
+                        persistentOnAirHasOutput = true;
+                        return;
+                    }
+
+                    // TRUE CROSS DISSOLVE:
+                    // current bank stays visible with OLD layout.
+                    // next bank already owns its own permanent AUX players,
+                    // receives NEW layout, then both banks cross opacity.
+                    const current = persistentOnAirBank === "A" ? bankA : bankB;
+                    const next = persistentOnAirBank === "A" ? bankB : bankA;
+
+                    renderTruePersistent2Box(next.id, data, true);
+
+                    next.classList.remove("p2-bank-active");
+                    next.classList.add("p2-bank-under");
+
+                    // Commit next bank at opacity 0 first.
+                    next.getBoundingClientRect();
+
+                    requestAnimationFrame(() => {
+                        next.classList.remove("p2-bank-under");
+                        next.classList.add("p2-bank-active");
+
+                        current.classList.remove("p2-bank-active");
+                        current.classList.add("p2-bank-under");
+                    });
+
+                    persistentOnAirBank = persistentOnAirBank === "A" ? "B" : "A";
+                    p2Mask.classList.remove("cover");
+                    return;
+                }
+
+                document.getElementById("p2OnAirBankA").classList.remove("p2-bank-active");
+                document.getElementById("p2OnAirBankB").classList.remove("p2-bank-active");
+                p2Mask.classList.remove("cover");
+                document.getElementById("onAirPreviewA").style.display = "";
+                document.getElementById("onAirPreviewB").style.display = "";
+
+                const current = document.getElementById(
+                    activeOnAirLayer === "A" ? "onAirPreviewA" : "onAirPreviewB"
+                );
+                const next = document.getElementById(
+                    activeOnAirLayer === "A" ? "onAirPreviewB" : "onAirPreviewA"
+                );
+                const nextLayerName = activeOnAirLayer === "A" ? "B" : "A";
+                const token = ++onAirTransitionToken;
+
+                if (empty) empty.style.display = "none";
+
+                next.onload = () => {
+                    if (token !== onAirTransitionToken) return;
+
+                    next.contentWindow.postMessage(
+                        {
+                            ...data,
+                            previewMode: "onair"
+                        },
+                        "*"
+                    );
+
+                    setTimeout(() => {
+                        if (token !== onAirTransitionToken) return;
+
+                        next.classList.add("active-layer");
+                        current.classList.remove("active-layer");
+
+                        setTimeout(() => {
+                            if (token !== onAirTransitionToken) return;
+                            current.src = "";
+                            //cross disolve
+                            activeOnAirLayer = nextLayerName;
+                        }, 500);
+                    }, 100);
+                };
+
+                next.classList.remove("active-layer");
+                next.src = `/layouts/${data.boxTypeName}.html`;
+            }
+            //note2
+
+            const previewEvents = new EventSource("/preview-events");
+
+            previewEvents.onmessage = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    console.log("PREVIEW PAYLOAD RECEIVED:", payload);
+
+                    const data = extractLayoutFromPayload(payload);
+
+                    if (!data) {
+                        console.error("Cannot create preview from payload");
+                        return;
+                    }
+
+                    //currentLayoutData = data;
+                    originalLayoutData = structuredClone(data);
+                    currentLayoutData = structuredClone(data);
+
+                    layoutEdited = false;
+                    updateActionButtons();
+
+                    layoutEdited = false;
+                    updateActionButtons();
+                    //showLayoutPreview(data);
+
+                    showLayoutPreview(currentLayoutData);
+
+
+
+                } catch (err) {
+                    console.error("Preview payload error:", err);
+                }
+            };
+
+            previewEvents.onerror = (err) => {
+                console.error("Preview event connection error:", err);
+            };
+
+            window.addEventListener("message", async event => {
+
+                const data = event.data;
+
+                if (data.action !== "deleteBox") {
+                    return;
+                }
+
+                console.log("DELETE:", data.boxName);
+
+                layoutEdited = true;
+                updateActionButtons();
+
+                currentLayoutData.boxOrder =
+                    currentLayoutData.boxOrder.filter(
+                        item => item.box !== data.boxName
+                    );
+
+                currentLayoutData.boxOrder.forEach((item, index) => {
+                    item.box = `BOX_${String(index + 1).padStart(2, "0")}`;
+                });
+
+                const remainingBoxes = currentLayoutData.boxOrder.length;
+
+                const newLayout = boxLayouts.find(item =>
+                    item.boxTypeName === `${remainingBoxes}BOX`
+                );
+
+                if (newLayout) {
+                    currentLayoutData.boxType = newLayout.boxType;
+                    currentLayoutData.boxTypeName = newLayout.boxTypeName;
+                }
+
+                console.log(
+                    "NEW STATE:",
+                    currentLayoutData
+                );
+
+                showLayoutPreview(currentLayoutData);
+            });
+
+
+            //====
+            async function sendVizCommand(command) {
+                const host = document.getElementById("settingEngineHost").value.trim();
+                const port = document.getElementById("settingEnginePort").value.trim();
+                //`/vizsend?host=${host}&port=${port}&cmd=${encodeURIComponent(command)}`
+                //const response = await fetch(`/vizsend?cmd=${encodeURIComponent(command)}`);
+                const response = await fetch(`/vizsend?host=${host}&port=${port}&cmd=${encodeURIComponent(command)}`);
+                const result = await response.json();
+                console.log("Viz response:", result);
+                return result.response;
+            }
+
+            async function sendToViz() {
+                if (layoutEdited) {
+                    await takeElementMSE(false);
+                    await setBoxIndex();
+
+                    // IMPORTANT:
+                    // tetap edit-mode sampai operator tekan BACK.
+                    // Jadi TAKE tetap disabled, SEND TO VIZ tetap enabled.
+                    updateActionButtons();
+                    return;
+                }
+
+                await takeElementMSE();
+                await setBoxIndex();
+            }
+
+            async function setBoxIndex(layoutData = currentLayoutData) {
+
+                const data = layoutData;
+
+                const targetLayout = boxLayouts.find(
+                    item => item.boxType === data.boxType
+                );
+
+                onAirLayoutData = {
+                    boxType: data.boxType,
+                    boxTypeName: targetLayout.boxTypeName,
+                    boxOrder: data.boxOrder.map(item => ({
+                        box: item.box,
+                        input: item.input
+                    }))
+                };
+
+                console.log("ON AIR JSON:", onAirLayoutData);
+
+                showOnAirPreview(onAirLayoutData);
+
+                for (const item of data.boxOrder) {
+                    await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE set_index ${data.boxType} ${item.box} ${item.input}`);
+                }
+
+                await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT*INSTANCE*idxLayout SET ${data.boxType}`);
+                await sendVizCommand(`-1 MAIN_SCENE*TREE*$SCRIPT*SCRIPT INVOKE Execute`);
+            }
+            ///
+            // ==========================================
+            // LOAD PLAYLISTS
+            // ==========================================
+
+            async function loadPlaylists() {
+                try {
+                    const response = await fetch("/api/playlists", {
+                        headers: {
+                            Accept: "application/atom+xml",
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const text = await response.text();
+
+                    const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                    const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                    const list = document.getElementById("playlistList");
+
+                    list.innerHTML = "";
+
+                    for (const entry of entries) {
+                        const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled";
+
+                        const links = entry.getElementsByTagNameNS(atom, "link");
+
+                        let elementCollectionUrl = null;
+                        let activationUrl = null;
+
+                        for (const link of links) {
+                            const rel = link.getAttribute("rel");
+
+                            const type = link.getAttribute("type");
+
+                            if (rel === "alternate" && type === "application/atom+xml;type=feed") {
+                                elementCollectionUrl = link.getAttribute("href");
+                            }
+
+                            if (rel === "related" && type === "application/vnd.vizrt.playlistactivation+xml") {
+                                activationUrl = link.getAttribute("href");
+                            }
+                        }
+
+                        if (!elementCollectionUrl) {
+                            continue;
+                        }
+
+                        const item = document.createElement("div");
+
+                        item.className = "item";
+
+                        item.textContent = title;
+
+                        item.onclick = () => {
+                            document
+                                .querySelectorAll("#playlistList .item")
+                                .forEach((x) => x.classList.remove("selected"));
+
+                            item.classList.add("selected");
+                            ///
+                            //layoutEdited = false;
+                            //updateActionButtons();
+                            ////
+                            const match = activationUrl?.match(/playlists\/(.+)$/);
+                            selectedPlaylistUuid = match ? match[1] : null;
+
+                            activatePlaylist(activationUrl);
+
+                            loadElements(elementCollectionUrl);
+                        };
+
+                        list.appendChild(item);
+                    }
+                } catch (error) {
+                    console.error("LOAD PLAYLIST ERROR:", error);
+                }
+            }
+
+            // ==========================================
+            // ACTIVATE PLAYLIST
+            // ==========================================
+
+            async function activatePlaylist(activationUrl) {
+                if (!activationUrl) {
+                    console.error("Activation URL not found");
+                    return;
+                }
+
+                //const match = activationUrl.match(/playlists\/(.+)$/);
+                const match = activationUrl;
+
+
+                if (!match) {
+                    console.error("Cannot get playlist UUID:", activationUrl);
+                    return;
+                }
+
+                //const uuid = match[1];
+                const uuid = activationUrl;
+
+                console.log("ACTIVATING:", uuid);
+
+                try {
+                    const response = await fetch(`/api/activate/${encodeURIComponent(uuid)}`, {
+                        method: "PUT",
+                    });
+
+                    const result = await response.text();
+
+                    console.log("ACTIVATION STATUS:", response.status);
+                    console.log("ACTIVATION RESPONSE:", result);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}: ${result}`);
+                    }
+
+                    console.log("PLAYLIST ACTIVATED");
+                } catch (error) {
+                    console.error("ACTIVATE PLAYLIST ERROR:", error);
+                }
+            }
+
+            // ==========================================
+            // LOAD ELEMENTS
+            // ==========================================
+
+            async function loadElements(url) {
+                const list = document.getElementById("elementList");
+
+                list.innerHTML = "Loading...";
+
+                try {
+                    const msePath = new URL(url).pathname + new URL(url).search;
+
+                    const response = await fetch(`/api/elements?path=${encodeURIComponent(msePath)}`);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const text = await response.text();
+
+                    const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                    const entries = xml.getElementsByTagNameNS(atom, "entry");
+
+                    list.innerHTML = "";
+
+                    for (const entry of entries) {
+                        const title = entry.getElementsByTagNameNS(atom, "title")[0]?.textContent || "Untitled Element";
+
+                        const id = entry.getElementsByTagNameNS(atom, "id")[0]?.textContent || "";
+
+                        const links = entry.getElementsByTagNameNS(atom, "link");
+
+                        let elementUrl = null;
+
+                        for (const link of links) {
+                            if (link.getAttribute("rel") === "alternate") {
+                                elementUrl = link.getAttribute("href");
+
+                                break;
+                            }
+                        }
+
+                        if (!elementUrl) {
+                            continue;
+                        }
+
+                        const item = document.createElement("div");
+
+                        item.className = "item";
+
+                        item.textContent = title;
+                        //====================================================================
+                        item.onclick = async () => {
+                            document
+                                .querySelectorAll("#elementList .item")
+                                .forEach((x) => x.classList.remove("selected"));
+
+                            item.classList.add("selected");
+
+                            console.log("ELEMENT:", title);
+                            console.log("ATOM ID:", id);
+                            selectedElementUrl = elementUrl;
+                            console.log("ELEMENT URL:", selectedElementUrl);
+                            selectedElementId = id;
+                            console.log("ID:", selectedElementId);
+
+                            /*
+                            getElementPayload(elementUrl);
+                            //document.getElementById("layoutPreview").src = "/layouts/layout_1.html";
+                            //send json from payload extraction
+    currentLayoutData = {
+        boxType: 4,
+        boxTypeName: "LIVEBOX4",
+        boxOrder: [
+            { box: "BOX_01", input: 0 },
+            { box: "BOX_02", input: 1 },
+            { box: "BOX_03", input: 2 },
+            { box: "BOX_04", input: 3 }
+        ]
+    };
+    
+                            const preview =
+                                document.getElementById("layoutPreview");
+    
+                            preview.onload = () => {
+                                preview.contentWindow.postMessage(
+                                    currentLayoutData,
+                                    "*"
+                                );
+                            };
+    
+                            preview.src =
+                                `/layouts/${currentLayoutData.boxTypeName}.html`;
+                        
+                        */
+                            const loading = document.getElementById("previewLoading");
+                            loading.classList.add("show");
+                            //news
+                            const payload = await getElementPayload(elementUrl);
+
+                            if (!payload) {
+                                console.error("NO ELEMENT PAYLOAD");
+                                return;
+                            }
+
+                            currentLayoutData = extractLayoutFromPayload(payload);
+
+                            if (!currentLayoutData) {
+                                console.error("CANNOT EXTRACT LAYOUT");
+                                return;
+                            }
+
+                            /////
+                            layoutEdited = false;
+                            updateActionButtons();
+                            ///
+                            console.log("LAYOUT JSON:", currentLayoutData);
+
+                            showLayoutPreview(currentLayoutData);
+
+                        };
+
+                        list.appendChild(item);
+                    }
+                } catch (error) {
+                    console.error("LOAD ELEMENTS ERROR:", error);
+
+                    list.innerHTML = "Error loading elements";
+                }
+            }
+
+            // ==========================================
+            // GET ELEMENT PAYLOAD
+            // ==========================================
+
+            async function getElementPayload(url) {
+                if (elementCache.has(url)) {
+                    console.log("FROM CACHE");
+                    console.log("ELEMENT PAYLOAD:", elementCache.get(url));
+                    return elementCache.get(url);
+                }
+
+                const start = performance.now();
+
+                try {
+                    const response = await fetch(`/api/element?url=${encodeURIComponent(url)}`);
+
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText}`);
+                    }
+
+                    const payload = await response.text();
+
+                    elementCache.set(url, payload);
+
+                    console.log("MSE RESPONSE:", Math.round(performance.now() - start), "ms");
+
+                    console.log("ELEMENT PAYLOAD:", payload);
+
+                    return payload;
+                } catch (error) {
+                    console.error("GET ELEMENT ERROR:", error);
+                    return null;
+                }
+            }
+
+            // ==========================================
+            // CLEANUP PLAYLIST
+            // ==========================================
+            async function cleanupPlaylist() {
+                if (!selectedPlaylistUuid) {
+                    console.log("NO PLAYLIST SELECTED");
+                    return;
+                }
+
+                const response = await fetch(`/api/cleanup/${encodeURIComponent(selectedPlaylistUuid)}`, {
+                    method: "POST"
+                });
+
+                const result = await response.text();
+
+                console.log("CLEANUP STATUS:", response.status);
+                console.log("CLEANUP RESPONSE:", result);
+            }
+
+            // ==========================================
+            // TAKE
+            // ==========================================
+            async function takeElement() {
+                // ONE TAKE BUTTON, existing execution paths preserved:
+                // quick zoom -> old Quick Zoom setBoxIndex path
+                // edited/delete -> old SEND TO VIZ path
+                // normal -> old MSE TAKE path
+                if (quickZoomPendingData) {
+                    const zoomData = structuredClone(quickZoomPendingData);
+                    await setBoxIndex(zoomData);
+                    closePersistentQuickZoom();
+                    return;
+                }
+
+                if (layoutEdited) {
+                    await sendToViz();
+                    return;
+                }
+
+                await takeElementMSE();
+            }
+
+            async function takeElementMSE(updateOnAirPreview = true) {
+
+                console.log("TAKE BODY CHECK:", selectedElementId);
+
+                const response = await fetch("/api/take", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain"
+                    },
+                    body: selectedElementId
+                });
+
+                const result = await response.text();
+
+                console.log("TAKE STATUS:", response.status);
+                console.log("TAKE RESPONSE:", result);
+
+                if (response.ok && updateOnAirPreview) {
+                    onAirLayoutData = structuredClone(currentLayoutData);
+
+                    console.log("ON AIR JSON:", onAirLayoutData);
+
+                    showOnAirPreview(onAirLayoutData);
+                }
+            }
+
+            // ==========================================
+            // TAKE OUT
+            // ==========================================
+            async function takeOutElement() {
+
+                if (!selectedElementId) {
+                    console.log("NO ELEMENT SELECTED");
+                    return;
+                }
+
+                console.log("OUT BODY CHECK:", selectedElementId);
+
+                const response = await fetch("/api/out", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain"
+                    },
+                    body: selectedElementId
+                });
+
+                const result = await response.text();
+
+                console.log("OUT STATUS:", response.status);
+                console.log("OUT RESPONSE:", result);
+
+                if (response.ok) {
+                    const onAirPreviewA = document.getElementById("onAirPreviewA");
+                    const onAirPreviewB = document.getElementById("onAirPreviewB");
+                    const onAirEmpty = document.getElementById("onAirEmpty");
+
+                    ++onAirTransitionToken;
+
+                    const p2OnAirMask = document.getElementById("p2OnAirMask");
+                    const bankA = document.getElementById("p2OnAirBankA");
+                    const bankB = document.getElementById("p2OnAirBankB");
+
+                    // OUT DISSOLVE for persistent layouts:
+                    // fade the currently visible bank first.
+                    // Do NOT cover it with the mask until the fade is finished.
+                    if (persistentOnAirHasOutput) {
+                        const activeBank = persistentOnAirBank === "A" ? bankA : bankB;
+                        activeBank.classList.remove("p2-bank-active");
+                        activeBank.classList.add("p2-bank-under");
+                    }
+
+                    // Existing iframe On Air path also fades via active-layer opacity.
+                    onAirPreviewA.classList.remove("active-layer");
+                    onAirPreviewB.classList.remove("active-layer");
+
+                    setTimeout(() => {
+                        // Only cover after the dissolve has completed.
+                        p2OnAirMask.classList.add("cover");
+
+                        bankA.classList.remove("p2-bank-active");
+                        bankB.classList.remove("p2-bank-active");
+                        bankA.classList.add("p2-bank-under");
+                        bankB.classList.add("p2-bank-under");
+
+                        persistentOnAirHasOutput = false;
+                        onAirLayoutData = null;
+                        onAirPreviewA.src = "";
+                        onAirPreviewB.src = "";
+                        activeOnAirLayer = "A";
+                        onAirEmpty.style.display = "flex";
+
+                        console.log("ON AIR CLEARED WITH DISSOLVE");
+                    }, 650);
+                }
+            }
+
+            //erefresh mse
+
+            //async function refreshMSE() {
+            //  console.log("REFRESHING MSE...");
+
+            //elementCache.clear();
+            //await loadPlaylists();
+
+            //console.log("MSE REFRESHED");
+            //}
+
+            let templateConfig = {};
+
+            async function loadTemplateConfig() {
+                const response = await fetch("/api/template-config", {
+                    cache: "no-store"
+                });
+
+                const data = await response.json();
+                templateConfig = data.templates;
+            }
+
+            async function checkPlaylistStatus() {
+                try {
+                    const response = await fetch("/api/playlist-status", {
+                        cache: "no-store"
+                    });
+
+                    const status = await response.json();
+
+                    document.getElementById("playlistStatus").textContent =
+                        status.active ? "Active" : "Inactive";
+                } catch (err) {
+                    document.getElementById("playlistStatus").textContent = "Inactive";
+                }
+            }
+
+
+            async function refreshMSE_() {
+                console.log("REFRESHING MSE...");
+
+                elementCache.clear();
+
+                selectedElementId = null;
+                selectedElementUrl = null;
+                selectedPlaylistUuid = null;
+                currentLayoutData = null;
+                onAirLayoutData = null;
+                layoutEdited = false;
+
+                document.getElementById("elementList").innerHTML = "Select playlist";
+                document.getElementById("layoutPreview").src = "";
+                document.getElementById("onAirPreview").src = "";
+
+                updateActionButtons();
+
+                await loadPlaylists();
+
+                console.log("MSE REFRESHED");
+            }
+            async function refreshSystemStatus() {
+                try {
+                    const response = await fetch("/api/status", { cache: "no-store" });
+                    const status = await response.json();
+                    setConnectionStatus("mse", status.mse.connected, `${status.mse.host}:${status.mse.port}`);
+                    setConnectionStatus("engine", status.engine.connected, `${status.engine.host}:${status.engine.port}`);
+                    document.getElementById("profileStatus").textContent = status.profile || "default";
+
+                    await checkPlaylistStatus();
+
+                } catch (err) {
+                    setConnectionStatus("mse", false, "-");
+                    setConnectionStatus("engine", false, "-");
+                }
+            }
+
+            function setConnectionStatus(type, connected, address) {
+                const prefix = type === "mse" ? "mse" : "engine";
+                const dot = document.getElementById(`${prefix}StatusDot`);
+                document.getElementById(`${prefix}StatusText`).textContent = connected ? "Connected" : "Disconnected";
+                document.getElementById(`${prefix}StatusAddress`).textContent = address;
+                dot.classList.toggle("off", !connected);
+            }
+
+            async function openSettings() {
+                const response = await fetch("/api/settings", { cache: "no-store" });
+                const cfg = await response.json();
+                console.log(cfg);
+                document.getElementById("settingMseHost").value = cfg.mse.host;
+                document.getElementById("settingMsePort").value = cfg.mse.port;
+                document.getElementById("settingMseProfile").value = cfg.mse.profile;
+                document.getElementById("settingEngineHost").value = cfg.engine.host;
+                document.getElementById("settingEnginePort").value = cfg.engine.port;
+                document.getElementById("settingPlaylistId").value = cfg.playlist.playlistid;
+                document.getElementById("settingReceiveDirector").checked = cfg.director?.enabled !== false;
+                document.getElementById("settingsModal").classList.add("show");
+            }
+
+            function closeSettings() {
+                document.getElementById("settingsModal").classList.remove("show");
+            }
+
+            async function saveSettings() {
+                const settings = {
+                    mse: {
+                        host: document.getElementById("settingMseHost").value.trim(),
+                        port: Number(document.getElementById("settingMsePort").value),
+                        profile: document.getElementById("settingMseProfile").value.trim() || "default"
+                    },
+                    engine: {
+                        host: document.getElementById("settingEngineHost").value.trim(),
+                        port: Number(document.getElementById("settingEnginePort").value)
+                    }
+                    ,
+                    playlist: {
+                        playlistid: document.getElementById("settingPlaylistId").value.trim()
+                    },
+                    director: {
+                        enabled: document.getElementById("settingReceiveDirector").checked
+                    }
+                };
+                const response = await fetch("/api/settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(settings)
+                });
+                if (!response.ok) {
+                    alert("Invalid settings");
+                    return;
+                }
+                closeSettings();
+                await reconnectServices();
+            }
+            /*
+                        async function reconnectServices() {
+                            try {await fetch("/api/reconnect", {method: "POST"});} catch (err) { }
+                            elementCache.clear();
+                            await refreshSystemStatus();
+                            await loadPlaylists();
+                            await activatePlaylist(document.getElementById("settingPlaylistId").value.trim())
+                            console.log("RECONNECTED SERVICES");
+                        }
+            */
+
+            async function reconnectServices() {
+                try {
+                    await fetch("/api/reconnect", { method: "POST" });
+                } catch (err) { }
+
+                elementCache.clear();
+
+                const response = await fetch("/api/settings", {
+                    cache: "no-store"
+                });
+
+                const config = await response.json();
+                const playlistId = config.playlist.playlistid;
+
+                await refreshSystemStatus();
+                await loadPlaylists();
+                await activatePlaylist(playlistId);
+
+                console.log("RECONNECTED SERVICES");
+            }
+            // UI-only selection state for Input Sources and Layout Templates
+            document.querySelectorAll(".source-card").forEach((card, index) => {
+                card.addEventListener("click", () => {
+                    document.querySelectorAll(".source-card").forEach(x => x.classList.remove("selected"));
+                    card.classList.add("selected");
+                    const status = document.getElementById("selectedSourceStatus");
+                    if (status) status.textContent = `INPUT ${String(index + 1).padStart(2, "0")}`;
+                });
+            });
+            /*
+                        document.querySelectorAll(".template-card").forEach(card => {
+                            card.addEventListener("click", () => {
+                                document.querySelectorAll(".template-card").forEach(x => x.classList.remove("selected"));
+                                card.classList.add("selected");
+                                const name = card.querySelector(".template-name")?.textContent?.trim() || "NONE";
+                                const status = document.getElementById("selectedTemplateStatus");
+                                if (status) status.textContent = name;
+                            });
+                        });
+            */
+
+            document.querySelectorAll(".template-card").forEach(card => {
+                card.addEventListener("click", async () => {
+
+                    document.querySelectorAll(".template-card").forEach(x => {
+                        x.classList.remove("selected");
+                    });
+
+                    card.classList.add("selected");
+
+                    const name =
+                        card.querySelector(".template-name").textContent.trim();
+
+                    const status = document.getElementById("selectedTemplateStatus");
+                    if (status) {
+                        status.textContent = name;
+                    }
+
+                    const template = templateConfig[name];
+
+                    if (!template) {
+                        console.error("Template config not found:", name);
+                        return;
+                    }
+
+                    const payload = `<payload>
+    <field name="source">
+        <value>local</value>
+    </field>
+    <field name="setBoxes">
+        <value>${template.setBoxes}</value>
+    </field>
+    <field name="elementId">
+        <value>${template.elementId}</value>
+    </field>
+</payload>`;
+
+                    await fetch("/preview", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/xml"
+                        },
+                        body: payload
+                    });
+                });
+            });
+            // ==========================================
+            // START
+            // ==========================================
+            loadTemplateConfig();
+            loadPlaylists();
+            updateActionButtons();
+            
+            reconnectServices();
+            refreshSystemStatus();
+            setInterval(refreshSystemStatus, 130000);
+
+
+            //document.getElementById("input01").src = "http://127.0.0.1:8889/aux1?autoplay=true&muted=true&controls=false";
+            //document.getElementById("input02").src = "http://127.0.0.1:8889/aux2?autoplay=true&muted=true&controls=false";
+            //document.getElementById("input03").src = "http://127.0.0.1:8889/aux3?autoplay=true&muted=true&controls=false";
+        </script>
+</body>
+
+</html>
+<style>
+    .sources-title {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: #c7cdd3;
+    }
+
+    .sources-title::before {
+        width: 7px;
+        height: 7px;
+    }
+
+    .status-bar {
+        background: #1b2024;
+        border-color: #2b3136;
+    }
+
+
+    /* Two-row layout template grid */
+    .template-strip {
+        display: grid !important;
+        grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+        grid-auto-flow: row !important;
+        gap: 6px !important;
+        padding: 6px 8px 7px !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+    }
+
+
+    .template-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 85% !important;
+        min-height: 0 !important;
+    }
+
+    .template-thumb {
+        width: calc(100% - 6px) !important;
+        height: calc(100% - 18px) !important;
+        min-height: 0 !important;
+        margin: 3px 3px 1px !important;
+        object-fit: contain !important;
+    }
+
+    .template-name {
+        height: 25px !important;
+        line-height: 25px !important;
+        font-size: 12px !important;
+        text-align: center !important;
+    }
+
+    body.hide-sources .sources-panel {
+        display: none !important;
+    }
+
+    body.hide-sources .layout-templates-panel {
+        top: calc(var(--f-edge) + var(--f-top-h) + var(--f-gap)) !important;
+        bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap)) !important;
+        height: auto !important;
+    }
+</style>

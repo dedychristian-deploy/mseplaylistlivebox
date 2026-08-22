@@ -120,7 +120,7 @@
         }
 
         .control-panel::before {
-            content: "CONTROL";
+            content: "";
             color: var(--text);
             font-size: 11px;
             font-weight: 650;
@@ -201,6 +201,12 @@
             border-top-color: #aab2ba;
             border-radius: 50%;
             animation: previewSpin .8s linear infinite;
+        }
+
+        #preview,
+        #onAirPreview {
+            opacity: 1;
+            transition: opacity 10000ms ease;
         }
 
         #onAirPreview {
@@ -622,6 +628,44 @@
             font-size: 10px;
             font-weight: 800;
             pointer-events: none;
+        }
+
+        .settings-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 46px;
+            padding: 0;
+            color: #d7dde3;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .settings-toggle-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .settings-toggle-copy strong {
+            color: #dce5ec;
+            font-size: 11px;
+            font-weight: 650;
+        }
+
+        .settings-toggle-copy small {
+            color: #6f7e8b;
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        .settings-toggle-row input {
+            width: 17px;
+            height: 17px;
+            margin: 0 2px 0 16px;
+            accent-color: #2d9cff;
+            cursor: pointer;
         }
 
         .settings-note {
@@ -1188,9 +1232,974 @@
         }
     </style>
 
-</head>
 
-<body>
+    <style id="layout-templates-preview">
+        /* 100% browser zoom layout: sized to fit a 1920x1080-style viewport without browser zoom-out */
+        .top-area {
+            height: 61vh !important
+        }
+
+        .sources-panel {
+            bottom: calc(9vh + 70px) !important;
+            height: 20vh !important;
+            min-height: 0 !important
+        }
+
+        .layout-templates-panel {
+            position: fixed;
+            left: 18px;
+            right: 18px;
+            bottom: 64px;
+            height: 9vh;
+            min-height: 78px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #111922 0%, #0d141b 100%);
+            border: 1px solid #273746;
+            border-radius: 10px;
+            overflow: hidden
+        }
+
+        .layout-templates-title {
+            height: 24px;
+            min-height: 24px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(180deg, #141d27, #111820);
+            border-bottom: 1px solid #253442;
+            font-size: 9px;
+            font-weight: 750;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            flex-shrink: 0
+        }
+
+        .layout-templates-title::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2d9cff
+        }
+
+        .template-strip {
+            display: flex;
+            gap: 7px;
+            align-items: stretch;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 6px 8px 7px;
+            flex: 1;
+            min-height: 0;
+            scrollbar-width: thin
+        }
+
+        .template-card {
+            width: 91px;
+            min-width: 91px;
+            height: 54px;
+            border: 1px solid #2a3a49;
+            border-radius: 5px;
+            background: #0c131a;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            box-sizing: border-box;
+            overflow: hidden
+        }
+
+        .template-card.selected {
+            border: 2px solid #2d9cff;
+            box-shadow: 0 0 0 1px rgba(45, 156, 255, .22)
+        }
+
+        .template-mini {
+            height: 34px;
+            margin: 4px 4px 2px;
+            border: 1px solid #34495b;
+            background: #121c26;
+            display: grid;
+            gap: 2px;
+            padding: 2px;
+            box-sizing: border-box
+        }
+
+        .template-mini span {
+            display: block;
+            background: #263746;
+            border: 1px solid #40566a;
+            min-width: 0;
+            min-height: 0
+        }
+
+        .template-name {
+            height: 13px;
+            line-height: 13px;
+            text-align: center;
+            font-size: 7px;
+            font-weight: 750;
+            color: #dbe6ef;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 2px
+        }
+
+        .template-selected-status {
+            margin-left: auto;
+            color: #6faee8;
+            font-size: 7px
+        }
+
+        .source-selected-status {
+            margin-left: auto;
+            color: #6faee8;
+            font-size: 7px
+        }
+
+        .source-card.source-selected {
+            border-color: #2d9cff !important;
+            box-shadow: 0 0 0 1px rgba(45, 156, 255, .3) inset
+        }
+
+        .source-card.source-selected .source-title {
+            color: #70b8ff
+        }
+
+        .sources-grid {
+            min-height: 0 !important
+        }
+
+        .template-card:hover {
+            border-color: #4b5966;
+        }
+
+        .template-card.selected {
+            border-color: #2d8fd8;
+        }
+
+        .template-card.selected .template-name {
+            color: #2d8fd8;
+        }
+    </style>
+
+
+    <style id="layout-clean-final">
+        /* Clean 100% zoom composition */
+        :root {
+            --ui-edge: 12px;
+            --ui-gap: 8px;
+            --status-h: 36px;
+            --templates-h: 118px;
+            --sources-h: 190px;
+        }
+
+        .top-area {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            top: var(--ui-edge) !important;
+            height: auto !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap) + var(--templates-h) + var(--ui-gap) + var(--sources-h) + var(--ui-gap)) !important;
+        }
+
+        .sources-panel {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            height: var(--sources-h) !important;
+            min-height: 0 !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap) + var(--templates-h) + var(--ui-gap)) !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+        }
+
+        .layout-templates-panel {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            bottom: calc(8px + var(--status-h) + var(--ui-gap)) !important;
+            height: var(--templates-h) !important;
+            min-height: 0 !important;
+            border-radius: 8px !important;
+        }
+
+        .status-bar {
+            left: var(--ui-edge) !important;
+            right: var(--ui-edge) !important;
+            bottom: 8px !important;
+            height: var(--status-h) !important;
+            box-sizing: border-box !important;
+            border-radius: 8px !important;
+        }
+
+        .sources-title,
+        .layout-templates-title {
+            height: 28px !important;
+            min-height: 28px !important;
+            box-sizing: border-box !important;
+            padding: 0 10px !important;
+            gap: 7px !important;
+            line-height: 1 !important;
+        }
+
+        .sources-title .selection-status,
+        .layout-templates-title .selection-status {
+            margin-left: 4px !important;
+            color: #7f94a8 !important;
+            font-size: 8px !important;
+            font-weight: 650 !important;
+        }
+
+        .sources-title .selection-status strong,
+        .layout-templates-title .selection-status strong {
+            color: #9fc8ee !important;
+        }
+
+        .source-grid {
+            padding: 8px !important;
+            gap: 10px !important;
+        }
+
+        .source-card {
+            border-radius: 6px !important;
+            background: #0b1117 !important;
+        }
+
+        .source-label {
+            height: 30px !important;
+            padding: 0 10px !important;
+            font-size: 10px !important;
+            background: #111a23 !important;
+        }
+
+        .template-strip {
+            display: grid !important;
+            grid-template-columns: repeat(19, minmax(84px, 1fr)) !important;
+            align-items: stretch !important;
+            gap: 6px !important;
+            padding: 6px 8px 7px !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+        }
+
+        .template-card {
+            width: auto !important;
+            min-width: 84px !important;
+            height: 76px !important;
+            border-radius: 5px !important;
+        }
+
+        .template-mini {
+            height: 31px !important;
+            margin: 3px 4px 1px !important;
+            gap: 2px !important;
+            padding: 2px !important;
+        }
+
+        .template-name {
+            height: 16px !important;
+            line-height: 16px !important;
+            font-size: 7px !important;
+            letter-spacing: -.05px !important;
+        }
+
+        .template-card.selected {
+            border: 1px solid #2d9cff !important;
+            box-shadow: 0 0 0 1px #2d9cff inset, 0 0 8px rgba(45, 156, 255, .12) !important;
+        }
+
+        /* readable mini-layouts instead of flat stripes */
+        .template-mini.m1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m2 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m3 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr
+        }
+
+        .template-mini.m4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m5 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m6 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m7 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m8 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m9 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr)
+        }
+
+        .template-mini.m10 {
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+
+        .template-mini.m12 {
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(2, 1fr)
+        }
+    </style>
+
+
+    <style id="layout-template-image-overrides">
+        .template-card {
+            position: relative !important;
+        }
+
+        .template-thumb {
+            width: calc(100% - 8px);
+            height: 54px;
+            margin: 4px 4px 2px;
+            display: block;
+            object-fit: contain;
+            object-position: center;
+            box-sizing: border-box;
+            border: 1px solid #34495b;
+            background: #121c26;
+            pointer-events: none;
+        }
+
+        .template-card.selected .template-thumb {
+            border-color: #4aa8ff;
+        }
+    </style>
+
+
+    <style id="f11-layout-rapih-final">
+        :root {
+            --f-edge: 10px;
+            --f-gap: 8px;
+            --f-control: 170px;
+            --f-title: 52px;
+            --f-status: 38px;
+
+            /* Preview stays large and true 16:9, based on available width. */
+            --f-preview-w: calc((100vw - (var(--f-edge) * 2) - var(--f-control) - (var(--f-gap) * 2)) / 2);
+            --f-preview-h: calc(var(--f-preview-w) * 9 / 16);
+            --f-top-h: calc(var(--f-title) + var(--f-preview-h));
+
+            /*
+      Whatever is left below the preview is shared by Sources + Templates.
+      This guarantees they never overlap.
+    */
+            --f-lower-space: calc(100vh - (var(--f-edge) * 2) - var(--f-top-h) - var(--f-status) - (var(--f-gap) * 3));
+
+            --f-template-h: clamp(155px, calc(var(--f-lower-space) * 0.6), 260px);
+        }
+
+        /* One viewport, no scroll. */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden !important;
+        }
+
+        /* ===== TOP ===== */
+        .top-area {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            top: var(--f-edge) !important;
+            bottom: auto !important;
+            height: var(--f-top-h) !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) var(--f-control) minmax(0, 1fr) !important;
+            gap: var(--f-gap) !important;
+        }
+
+        .preview-panel,
+        .onair-panel,
+        .control-panel {
+            height: var(--f-top-h) !important;
+            min-height: 0 !important;
+        }
+
+        .preview-panel .top-title,
+        .onair-panel .top-title {
+            height: var(--f-title) !important;
+            min-height: var(--f-title) !important;
+            flex: 0 0 var(--f-title) !important;
+        }
+
+        .preview-content,
+        .onair-content {
+            display: block !important;
+            width: 100% !important;
+            height: var(--f-preview-h) !important;
+            min-height: 0 !important;
+            max-height: var(--f-preview-h) !important;
+            flex: 0 0 var(--f-preview-h) !important;
+            aspect-ratio: 16 / 9 !important;
+            margin: 0 !important;
+        }
+
+        .control-panel {
+            min-height: 0 !important;
+        }
+
+        /* ===== STATUS: ALWAYS BOTTOM ===== */
+        .status-bar {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            bottom: var(--f-edge) !important;
+            top: auto !important;
+            height: var(--f-status) !important;
+        }
+
+        /* ===== TEMPLATES ===== */
+        .layout-templates-panel {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap)) !important;
+            top: auto !important;
+            height: var(--f-template-h) !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* ===== SOURCES =====
+   Bound by top preview above and templates below.
+   No fixed/min height -> impossible to collide with templates.
+*/
+        .sources-panel {
+            position: fixed !important;
+            left: var(--f-edge) !important;
+            right: var(--f-edge) !important;
+            top: calc(var(--f-edge) + var(--f-top-h) + var(--f-gap)) !important;
+            bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap) + var(--f-template-h) + var(--f-gap)) !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* Same compact title height for both lower panels. */
+        .sources-title,
+        .layout-templates-title {
+            height: 27px !important;
+            min-height: 27px !important;
+            flex: 0 0 27px !important;
+        }
+
+        /* Sources consume exactly their panel body. */
+        .source-grid {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            padding: 7px !important;
+            gap: 8px !important;
+        }
+
+        .source-card {
+            min-height: 0 !important;
+        }
+
+        .source-label {
+            height: 28px !important;
+            min-height: 28px !important;
+            flex: 0 0 28px !important;
+        }
+
+        /* Templates: exactly 10 + 9 in two rows, no horizontal scroll. */
+        .template-strip {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: auto !important;
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+            grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+            grid-auto-flow: row !important;
+            gap: 6px !important;
+            padding: 6px !important;
+            overflow: hidden !important;
+        }
+
+        .template-card {
+            width: 100% !important;
+            min-width: 0 !important;
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        .template-thumb {
+            width: calc(100% - 6px) !important;
+            height: calc(100% - 17px) !important;
+            min-height: 0 !important;
+            margin: 2px 3px 0 !important;
+            object-fit: contain !important;
+        }
+
+        .template-name {
+            height: 15px !important;
+            line-height: 15px !important;
+        }
+
+        /* Preview overlays follow the actual 16:9 picture area. */
+        .preview-loading,
+        .onair-empty {
+            top: var(--f-title) !important;
+            bottom: 0 !important;
+            height: auto !important;
+        }
+    </style>
+
+
+    <style id="director-integration-clean">
+        .director-integration .settings-section-icon {
+            display: none !important;
+        }
+
+        .director-integration .settings-section-title {
+            gap: 0 !important;
+            padding-left: 0 !important;
+        }
+
+        .director-integration .settings-section-sub {
+            margin-left: 0 !important;
+        }
+    </style>
+
+    <style id="settings-no-section-circles">
+        /* Clean settings section headers: no circular icons */
+        .settings-section-icon {
+            display: none !important;
+        }
+
+        .settings-section-title {
+            gap: 0 !important;
+        }
+
+        .settings-section-sub {
+            margin-left: 0 !important;
+        }
+
+        .settings-section {
+            padding-left: 0 !important;
+        }
+    </style>
+    <style id="onair-dissolve-out">
+        #onAirPreview {
+            opacity: 1;
+            transition: opacity 800ms ease;
+        }
+
+        #onAirPreview.dissolve-out {
+            opacity: 0;
+        }
+    </style>
+
+
+    <style id="onair-cross-dissolve">
+        .onair-stage {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            height: var(--f-preview-h);
+            background: #111820;
+            overflow: hidden;
+        }
+
+        .onair-stage .onair-layer {
+            position: absolute !important;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: none !important;
+            margin: 0 !important;
+            border: 0;
+            opacity: 0;
+            pointer-events: none;
+            /*for cross dislve*/
+            transition: opacity 500ms ease;
+        }
+
+        .onair-stage .onair-layer.active-layer {
+            opacity: 1;
+        }
+    </style>
+
+
+<style id="true-persistent-2box-index-test">
+.p2-stage{
+    position:absolute; left:0; right:0; top:var(--f-title); bottom:0;
+    z-index:5; display:none;
+    grid-template-columns:repeat(2,1fr); grid-template-rows:1fr;
+    gap:5px; padding:5px; box-sizing:border-box; background:#111820;
+}
+#onAirStage .p2-stage{inset:0}
+.p2-stage.show{display:grid}
+.p2-box{position:relative;min-width:0;min-height:0;overflow:hidden;
+    background:#000;border:1px solid #3a4650;border-radius:6px}
+.p2-box.p2-hidden{visibility:hidden;pointer-events:none}
+.p2-stream{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;pointer-events:none}
+.p2-label{position:absolute;left:8px;bottom:8px;z-index:3;padding:5px 8px;
+    border-radius:4px;background:rgba(0,0,0,.68);color:#fff;font:700 11px Arial}
+.p2-delete{position:absolute;right:9px;top:9px;z-index:4;width:26px;height:26px;padding:0;
+    border:1px solid #455462;border-radius:5px;background:#1b2229;color:#b9c4ce;cursor:pointer}
+.p2-onair-mask{position:absolute;inset:0;z-index:7;background:#111820;display:none}
+.p2-onair-mask.cover{display:block}
+</style>
+
+
+<style id="persistent-preview-cross-dissolve">
+#p2PreviewGhost {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--f-title);
+    bottom: 0;
+    z-index: 8;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 500ms ease;
+    overflow: hidden;
+}
+#p2PreviewGhost.fade-out {
+    opacity: 0;
+}
+#p2PreviewGhost.start {
+    opacity: 1;
+    transition: none;
+}
+#p2PreviewGhost img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    display: block;
+}
+</style>
+
+
+<style id="persistent-preview-box-transitions">
+#p2PreviewStage .p2-box {
+    transition:
+        opacity 500ms ease,
+        transform 500ms ease,
+        left 500ms ease,
+        right 500ms ease,
+        top 500ms ease,
+        bottom 500ms ease;
+}
+#p2PreviewStage.p2-transitioning .p2-box {
+    opacity: .18;
+}
+</style>
+
+
+<style id="persistent-onair-dissolve">
+#p2OnAirStage {
+    opacity: 1;
+    transition: opacity 500ms ease;
+}
+#p2OnAirStage.p2-onair-dissolving {
+    opacity: 0.12;
+}
+</style>
+
+
+<style id="true-onair-cross-bank-css">
+#p2OnAirBankA, #p2OnAirBankB {
+    display: grid;
+    opacity: 0;
+    z-index: 5;
+    transition: opacity 600ms ease;
+}
+#p2OnAirBankA.p2-bank-active,
+#p2OnAirBankB.p2-bank-active {
+    opacity: 1;
+    z-index: 6;
+}
+#p2OnAirBankA.p2-bank-under,
+#p2OnAirBankB.p2-bank-under {
+    opacity: 0;
+    z-index: 5;
+}
+</style>
+
+
+
+<style id="persistent-preview-onair-one-geometry">
+/* ONE geometry: Preview and On Air picture areas are the same rectangle. */
+.preview-panel,
+.onair-panel {
+    position: relative !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+#p2PreviewStage,
+#onAirStage {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: var(--f-title) !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#onAirStage {
+    flex: none !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+}
+
+#p2OnAirBankA,
+#p2OnAirBankB {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#p2PreviewStage,
+#p2OnAirBankA,
+#p2OnAirBankB {
+    padding: 5px !important;
+    gap: 5px !important;
+}
+
+#p2PreviewStage .p2-box,
+#p2OnAirBankA .p2-box,
+#p2OnAirBankB .p2-box {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
+#p2PreviewStage .p2-stream,
+#p2OnAirBankA .p2-stream,
+#p2OnAirBankB .p2-stream {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+}
+</style>
+
+
+<style id="persistent-hidden-box-grid-fix">
+/*
+  IMPORTANT:
+  Hidden persistent AUX boxes must stay alive, but must NOT participate
+  in CSS Grid sizing. visibility:hidden alone still occupies a grid cell
+  and stale grid-row/grid-column values can create implicit rows/columns.
+*/
+#p2PreviewStage .p2-box.p2-hidden,
+#p2OnAirBankA .p2-box.p2-hidden,
+#p2OnAirBankB .p2-box.p2-hidden {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+}
+
+/* Visible boxes return to normal grid participation. */
+#p2PreviewStage .p2-box:not(.p2-hidden),
+#p2OnAirBankA .p2-box:not(.p2-hidden),
+#p2OnAirBankB .p2-box:not(.p2-hidden) {
+    position: relative !important;
+    width: auto !important;
+    height: auto !important;
+}
+</style>
+
+
+<style id="persistent-quick-zoom-dissolve">
+#p2QuickZoomOverlay{
+    position:absolute;
+    left:0;
+    right:0;
+    top:var(--f-title);
+    bottom:0;
+    z-index:80;
+    background:#111820;
+    padding:5px;
+    box-sizing:border-box;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity 500ms ease, visibility 0s linear 500ms;
+}
+#p2QuickZoomOverlay.show{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transition:opacity 500ms ease;
+}
+#p2QuickZoomOverlay.closing{
+    opacity:0;
+    visibility:visible;
+    pointer-events:none;
+}
+#p2QuickZoomStream{
+    position:relative;
+    width:100%;
+    height:100%;
+    border:1px solid #3a4650;
+    border-radius:6px;
+    box-sizing:border-box;
+    background:#000;
+    overflow:hidden;
+}
+#p2QuickZoomStream .p2-qz-player{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:0;
+    visibility:hidden;
+    opacity:0;
+    pointer-events:none;
+}
+#p2QuickZoomLabel{
+    position:absolute;
+    left:13px;
+    bottom:13px;
+    z-index:3;
+    padding:6px 9px;
+    color:#fff;
+    background:rgba(0,0,0,.68);
+    border-radius:4px;
+    font:700 12px Arial,sans-serif;
+}
+#p2QuickZoomActions{
+    position:absolute;
+    right:13px;
+    bottom:13px;
+    z-index:4;
+    display:flex;
+    gap:7px;
+}
+#p2QuickZoomActions button{
+    height:32px;
+    padding:0 15px;
+    border:1px solid rgba(92,108,121,.78);
+    border-radius:5px;
+    background:rgba(24,32,39,.92);
+    color:#dce4ea;
+    font:800 10px Arial,sans-serif;
+    cursor:pointer;
+}
+#p2QuickZoomSend{
+    min-width:116px;
+    background:rgba(40,123,196,.94)!important;
+    border-color:#3b98e8!important;
+    color:#fff!important;
+}
+
+.p2-stream,
+.p2-qz-player {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+}
+
+</style>
+
+
+<style id="true-preview-cross-bank-css">
+/* Preview uses the same true A/B cross-dissolve architecture as On Air. */
+#p2PreviewBankA, #p2PreviewBankB {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: var(--f-title) !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    display: grid;
+    padding: 5px !important;
+    gap: 5px !important;
+    box-sizing: border-box !important;
+    background: #111820;
+    opacity: 0;
+    z-index: 5;
+    pointer-events: none;
+    transition: opacity 600ms ease;
+}
+#p2PreviewBankA.p2-preview-active,
+#p2PreviewBankB.p2-preview-active {
+    opacity: 1;
+    z-index: 6;
+    pointer-events: auto;
+}
+#p2PreviewBankA.p2-preview-under,
+#p2PreviewBankB.p2-preview-under {
+    opacity: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+#p2PreviewBankA .p2-box.p2-hidden,
+#p2PreviewBankB .p2-box.p2-hidden {
+    position: absolute !important; left:0 !important; top:0 !important;
+    width:1px !important; height:1px !important; min-width:0 !important; min-height:0 !important;
+    overflow:hidden !important; visibility:hidden !important; pointer-events:none !important;
+    grid-column:auto !important; grid-row:auto !important;
+}
+#p2PreviewBankA .p2-box:not(.p2-hidden),
+#p2PreviewBankB .p2-box:not(.p2-hidden) {
+    position: relative !important; width:auto !important; height:auto !important;
+}
+#p2PreviewBankA .p2-stream, #p2PreviewBankB .p2-stream {
+    position:absolute !important; inset:0 !important; width:100% !important; height:100% !important;
+    margin:0 !important; border:0 !important;
+}
+</style>
+
+</head>
+<!--
+<body class="hide-sources">
+    -->
+
+<body class="hide-sources">
     <div class="top-area">
         <div class="preview-panel">
             <div class="top-title">Layout Preview</div>
@@ -1203,11 +2212,20 @@
             </div>
 
             <iframe id="layoutPreview" class="preview-content" frameborder="0"></iframe>
+            <div id="p2PreviewBankA" class="p2-stage p2-preview-bank"></div>
+            <div id="p2PreviewBankB" class="p2-stage p2-preview-bank"></div>
+<div id="p2QuickZoomOverlay">
+    <div id="p2QuickZoomStream"></div>
+    <div id="p2QuickZoomLabel"></div>
+    <div id="p2QuickZoomActions">
+        <button id="p2QuickZoomCancel" type="button">CANCEL</button>
+    </div>
+</div>
+            <div id="p2PreviewGhost"></div>
         </div>
 
         <div class="control-panel">
             <button id="resetButton" type="button" onclick="resetLayout()">BACK</button>
-            <button id="sendToVizButton" type="button" onclick="sendToViz()" disabled>SEND TO VIZ</button>
             <button id="takeButton" type="button" onclick="takeElement()" disabled>TAKE</button>
             <button id="contButton" type="button" disabled hidden>CONTINUE</button>
             <button id="outButton" type="button" onclick="takeOutElement()" disabled>OUT</button>
@@ -1220,12 +2238,19 @@
                 <div>NO ACTIVE OUTPUT</div>
                 <span>Waiting for TAKE</span>
             </div>
-            <iframe id="onAirPreview" class="onair-content" frameborder="0"></iframe>
+            <div id="onAirStage" class="onair-stage">
+                <iframe id="onAirPreviewA" class="onair-content onair-layer active-layer" frameborder="0"></iframe>
+                <iframe id="onAirPreviewB" class="onair-content onair-layer" frameborder="0"></iframe>
+                <div id="p2OnAirBankA" class="p2-stage p2-onair p2-bank"></div>
+                <div id="p2OnAirBankB" class="p2-stage p2-onair p2-bank"></div>
+                <div id="p2OnAirMask" class="p2-onair-mask cover"></div>
+            </div>
         </div>
     </div>
-
+<!--source panel-->
     <section class="sources-panel" aria-label="Input Sources">
-        <div class="sources-title">Input Sources</div>
+        <div class="sources-title">Input Sources <span class="selection-status">SELECTED: <strong
+                    id="selectedSourceStatus">NONE</strong></span></div>
         <div class="source-grid">
             <div class="source-card">
                 <div class="source-label"><span>INPUT 01</span><span>IFRAME</span></div><iframe id="input01"
@@ -1258,6 +2283,90 @@
             <div class="source-card">
                 <div class="source-label"><span>INPUT 08</span><span>IFRAME</span></div><iframe id="input08"
                     class="source-frame" title="Input 08" frameborder="0"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <section class="layout-templates-panel" aria-label="Layout Templates">
+        <div class="layout-templates-title">Layout Templates <span class="selection-status">SELECTED: <strong
+                    id="selectedTemplateStatus">NONE</strong></span></div>
+        <div class="template-strip">
+            <div class="template-card" data-template="1BOX"><img class="template-thumb" src="/template_images/1BOX.png"
+                    alt="1BOX" draggable="false">
+                <div class="template-name">1BOX</div>
+            </div>
+            <div class="template-card" data-template="2BOX"><img class="template-thumb" src="/template_images/2BOX.png"
+                    alt="2BOX" draggable="false">
+                <div class="template-name">2BOX</div>
+            </div>
+            <div class="template-card" data-template="2BOX_BIG_SMALL"><img class="template-thumb"
+                    src="/template_images/2BOX_BIG_SMALL.png" alt="2BOX_BIG_SMALL" draggable="false">
+                <div class="template-name">2BOX_BIG_SMALL</div>
+            </div>
+            <div class="template-card" data-template="3BOX"><img class="template-thumb" src="/template_images/3BOX.png"
+                    alt="3BOX" draggable="false">
+                <div class="template-name">3BOX</div>
+            </div>
+            <div class="template-card" data-template="3BOX_SP"><img class="template-thumb"
+                    src="/template_images/3BOX_SP.png" alt="3BOX_SP" draggable="false">
+                <div class="template-name">3BOX_SP</div>
+            </div>
+            <div class="template-card" data-template="4BOX"><img class="template-thumb" src="/template_images/4BOX.png"
+                    alt="4BOX" draggable="false">
+                <div class="template-name">4BOX</div>
+            </div>
+            <div class="template-card" data-template="5BOX"><img class="template-thumb" src="/template_images/5BOX.png"
+                    alt="5BOX" draggable="false">
+                <div class="template-name">5BOX</div>
+            </div>
+            <div class="template-card" data-template="6BOX"><img class="template-thumb" src="/template_images/6BOX.png"
+                    alt="6BOX" draggable="false">
+                <div class="template-name">6BOX</div>
+            </div>
+            <div class="template-card" data-template="7BOX"><img class="template-thumb" src="/template_images/7BOX.png"
+                    alt="7BOX" draggable="false">
+                <div class="template-name">7BOX</div>
+            </div>
+            <div class="template-card" data-template="7BOX_CENTER"><img class="template-thumb"
+                    src="/template_images/7BOX_CENTER.png" alt="7BOX_CENTER" draggable="false">
+                <div class="template-name">7BOX_CENTER</div>
+            </div>
+            <div class="template-card" data-template="8BOX"><img class="template-thumb" src="/template_images/8BOX.png"
+                    alt="8BOX" draggable="false">
+                <div class="template-name">8BOX</div>
+            </div>
+            <div class="template-card" data-template="9BOX"><img class="template-thumb" src="/template_images/9BOX.png"
+                    alt="9BOX" draggable="false">
+                <div class="template-name">9BOX</div>
+            </div>
+            <div class="template-card" data-template="10BOX"><img class="template-thumb"
+                    src="/template_images/10BOX.png" alt="10BOX" draggable="false">
+                <div class="template-name">10BOX</div>
+            </div>
+            <!--TO HIDE IT-->
+            <div class="template-card" data-template="12BOX"><img class="template-thumb"
+                    src="/template_images/12BOX.png" alt="12BOX" draggable="false">
+                <div class="template-name">12BOX</div>
+            </div>
+            <div class="template-card" data-template="1BOX_SP"><img class="template-thumb"
+                    src="/template_images/1BOX_SP.png" alt="1BOX_SP" draggable="false">
+                <div class="template-name">1BOX_SP</div>
+            </div>
+            <div class="template-card" data-template="1BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/1BOX_SP_V.png" alt="1BOX_SP_V" draggable="false">
+                <div class="template-name">1BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="2BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/2BOX_SP_V.png" alt="2BOX_SP_V" draggable="false">
+                <div class="template-name">2BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="3BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/3BOX_SP_V.png" alt="3BOX_SP_V" draggable="false">
+                <div class="template-name">3BOX_SP_V</div>
+            </div>
+            <div class="template-card" data-template="4BOX_SP_V"><img class="template-thumb"
+                    src="/template_images/4BOX_SP_V.png" alt="4BOX_SP_V" draggable="false">
+                <div class="template-name">4BOX_SP_V</div>
             </div>
         </div>
     </section>
@@ -1377,12 +2486,25 @@
                         </label>
                     </div>
 
-                    <div class="settings-note">
-                        <span class="settings-note-icon">i</span>
-                        <span>
-                            <strong>Changes will be applied immediately.</strong>
-                            The system will reconnect and update connection status after saving.
-                        </span>
+                </div>
+
+                <div class="settings-block director-integration">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <span class="settings-section-icon">▤</span>
+                            <span>DIRECTOR INTEGRATION</span>
+                        </div>
+                        <div class="settings-section-sub">Viz Pilot Director events</div>
+                    </div>
+
+                    <div class="settings-fields">
+                        <label class="settings-toggle-row">
+                            <span class="settings-toggle-copy">
+                                <strong>Receive Director Events</strong>
+                                <small>Accept preview events sent by Viz Pilot Director</small>
+                            </span>
+                            <input id="settingReceiveDirector" type="checkbox">
+                        </label>
                     </div>
                 </div>
 
@@ -1422,25 +2544,25 @@
             const elementCache = new Map();
             //setbox from json
             const boxLayouts = [
-                {boxType: 0, boxTypeName: "1BOX", count: 1},
-                {boxType: 1, boxTypeName: "2BOX", count: 2},
-                {boxType: 2, boxTypeName: "2BOX_BIG_SMALL", count: 2},
-                {boxType: 3, boxTypeName: "3BOX", count: 3},
-                {boxType: 4, boxTypeName: "3BOX_SP", count: 3},
-                {boxType: 5, boxTypeName: "4BOX", count: 4},
-                {boxType: 6, boxTypeName: "5BOX", count: 5},
-                {boxType: 7, boxTypeName: "6BOX", count: 6},
-                {boxType: 8, boxTypeName: "7BOX", count: 7},
-                {boxType: 9, boxTypeName: "7BOX_CENTER", count: 7},
-                {boxType: 10, boxTypeName: "8BOX", count: 8},
-                {boxType: 11, boxTypeName: "9BOX", count: 9},
-                {boxType: 12, boxTypeName: "10BOX", count: 10},
-                {boxType: 13, boxTypeName: "12BOX", count: 12},
-                {boxType: 14, boxTypeName: "1BOX_SP", count: 1},
-                {boxType: 15, boxTypeName: "1BOX_SP_V", count: 1},
-                {boxType: 16, boxTypeName: "2BOX_SP_V", count: 2},
-                {boxType: 17, boxTypeName: "3BOX_SP_V", count: 3},
-                {boxType: 18, boxTypeName: "4BOX_SP_V", count: 4}
+                { boxType: 0, boxTypeName: "1BOX", count: 1 },
+                { boxType: 1, boxTypeName: "2BOX", count: 2 },
+                { boxType: 2, boxTypeName: "2BOX_BIG_SMALL", count: 2 },
+                { boxType: 3, boxTypeName: "3BOX", count: 3 },
+                { boxType: 4, boxTypeName: "3BOX_SP", count: 3 },
+                { boxType: 5, boxTypeName: "4BOX", count: 4 },
+                { boxType: 6, boxTypeName: "5BOX", count: 5 },
+                { boxType: 7, boxTypeName: "6BOX", count: 6 },
+                { boxType: 8, boxTypeName: "7BOX", count: 7 },
+                { boxType: 9, boxTypeName: "7BOX_CENTER", count: 7 },
+                { boxType: 10, boxTypeName: "8BOX", count: 8 },
+                { boxType: 11, boxTypeName: "9BOX", count: 9 },
+                { boxType: 12, boxTypeName: "10BOX", count: 10 },
+                { boxType: 13, boxTypeName: "12BOX", count: 12 },
+                { boxType: 14, boxTypeName: "1BOX_SP", count: 1 },
+                { boxType: 15, boxTypeName: "1BOX_SP_V", count: 1 },
+                { boxType: 16, boxTypeName: "2BOX_SP_V", count: 2 },
+                { boxType: 17, boxTypeName: "3BOX_SP_V", count: 3 },
+                { boxType: 18, boxTypeName: "4BOX_SP_V", count: 4 }
             ];
 
             function extractLayoutFromPayload(payload) {
@@ -1497,30 +2619,31 @@
             //////
             //buttton
             function updateActionButtons() {
-                const sendButton = document.getElementById("sendToVizButton");
                 const takeButton = document.getElementById("takeButton");
                 const contButton = document.getElementById("contButton");
                 const outButton = document.getElementById("outButton");
 
                 const hasPayload = currentLayoutData !== null;
 
-                if (!hasPayload) {
-                    sendButton.disabled = true;
-                    takeButton.disabled = true;
-                    contButton.disabled = true;
-                    outButton.disabled = true;
-                    return;
-                }
-
-                sendButton.disabled = !layoutEdited;
-                takeButton.disabled = layoutEdited;
-                contButton.disabled = false;
-                outButton.disabled = false;
+                takeButton.disabled = !hasPayload;
+                contButton.disabled = !hasPayload;
+                outButton.disabled = !hasPayload;
             }
 
             function resetLayout() {
                 if (!originalLayoutData) {
                     return;
+                }
+
+                quickZoomPendingData = null;
+                persistentQuickZoomInput = null;
+                const qzOverlay = document.getElementById("p2QuickZoomOverlay");
+                if (qzOverlay) {
+                    qzOverlay.classList.remove("show", "closing");
+                    qzOverlay.querySelectorAll(".p2-qz-player").forEach(player => {
+                        player.style.visibility = "hidden";
+                        player.style.opacity = "0";
+                    });
                 }
 
                 currentLayoutData = structuredClone(originalLayoutData);
@@ -1535,43 +2658,451 @@
             //onair preview
             ///
 
+            function createPersistentInput(stage, input, onair) {
+                let box = stage.querySelector(`.p2-box[data-input="${input}"]`);
+                if (box) return box;
+
+                box = document.createElement("div");
+                box.className = "p2-box p2-hidden";
+                box.dataset.input = String(input);
+
+                //const stream = document.createElement("iframe");
+                const stream = document.createElement("img");
+                stream.className = "p2-stream";
+                //stream.src = `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+                //stream.src = "black.png";
+                stream.src = `/images/live${input + 1}.png`;
+                //stream.allow = "autoplay; fullscreen";
+                stream.frameBorder = "0";
+
+                const label = document.createElement("div");
+                label.className = "p2-label";
+                box.append(stream, label);
+
+                if (!onair) {
+                    const del = document.createElement("button");
+                    del.className = "p2-delete";
+                    del.type = "button";
+                    del.textContent = "×";
+                    del.addEventListener("click", event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const boxName = box.dataset.box;
+                        if (!boxName) return;
+                        box.classList.add("p2-hidden");
+                        window.postMessage({ action: "deleteBox", boxName }, "*");
+                    });
+                    box.appendChild(del);
+
+                    box.addEventListener("dblclick", event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openPersistentQuickZoom(input);
+                    });
+                }
+
+                stage.appendChild(box);
+                return box;
+            }
+
+            function initTruePersistent2BoxStage(stageId, onair) {
+                const stage = document.getElementById(stageId);
+                if (!stage || stage.dataset.ready === "1") return stage;
+
+                // FULL STARTUP CACHE TEST:
+                // Every persistent stage gets AUX1-AUX12 once at app startup.
+                // No source is created during an operator action.
+                for (let input = 0; input < 12; input++) {
+                    createPersistentInput(stage, input, onair);
+                }
+
+                stage.dataset.ready = "1";
+                return stage;
+            }
+
+            let persistentQuickZoomInput = null;
+            let quickZoomPendingData = null;
+
+            function openPersistentQuickZoom(input) {
+                const overlay = document.getElementById("p2QuickZoomOverlay");
+                const stream = document.getElementById("p2QuickZoomStream");
+                const label = document.getElementById("p2QuickZoomLabel");
+                if (!overlay || !stream || !label) return;
+
+                persistentQuickZoomInput = input;
+                quickZoomPendingData = {
+                    boxType: 0,
+                    boxTypeName: "1BOX",
+                    boxOrder: [{ box: "BOX_01", input }]
+                };
+                label.textContent = `BOX 01 · LIVE INPUT ${input + 1}`;
+                updateActionButtons();
+
+                stream.querySelectorAll(".p2-qz-player").forEach((player, index) => {
+                    const selected = index === input;
+                    player.style.visibility = selected ? "visible" : "hidden";
+                    player.style.opacity = selected ? "1" : "0";
+                });
+
+                overlay.classList.remove("closing");
+                requestAnimationFrame(() => overlay.classList.add("show"));
+            }
+
+            function closePersistentQuickZoom() {
+                const overlay = document.getElementById("p2QuickZoomOverlay");
+                const stream = document.getElementById("p2QuickZoomStream");
+                if (!overlay || !overlay.classList.contains("show")) return;
+
+                overlay.classList.remove("show");
+                overlay.classList.add("closing");
+
+                setTimeout(() => {
+                    overlay.classList.remove("closing");
+                    stream.querySelectorAll(".p2-qz-player").forEach(player => {
+                        player.style.visibility = "hidden";
+                        player.style.opacity = "0";
+                    });
+                    persistentQuickZoomInput = null;
+                    quickZoomPendingData = null;
+                    updateActionButtons();
+                }, 500);
+            }
+
+            document.getElementById("p2QuickZoomCancel")?.addEventListener("click", closePersistentQuickZoom);
+
+            const persistentLayoutRules = {"7BOX_CENTER":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_06":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"2/span 2","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_07":{"col":"1/span 1","row":"2/span 1"},"BOX_05":{"col":"2/span 1","row":"2/span 1"},"BOX_04":{"col":"3/span 1","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"3BOX_SP":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_01":{"col":"1/span 2","row":"1/span 1"},"BOX_02":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"}}},"2BOX_BIG_SMALL":{"cols":"repeat(3, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 2"},"BOX_01":{"col":"2/span 2","row":"1/span 2"}}},"3BOX":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"1/span 1","row":"2/span 1"},"BOX_01":{"col":"2/span 1","row":"1/span 2"}}},"4BOX":{"cols":"repeat(2, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_02":{"col":"1/span 1","row":"1/span 1"},"BOX_01":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"}}},"5BOX":{"cols":"repeat(3, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_04":{"col":"1/span 1","row":"1/span 1"},"BOX_02":{"col":"2/span 1","row":"1/span 1"},"BOX_05":{"col":"1/span 1","row":"2/span 1"},"BOX_03":{"col":"2/span 1","row":"2/span 1"},"BOX_01":{"col":"3/span 1","row":"1/span 2"}}},"6BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_05":{"col":"1/span 1","row":"1/span 1"},"BOX_03":{"col":"2/span 2","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_06":{"col":"1/span 1","row":"2/span 1"},"BOX_04":{"col":"2/span 2","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"7BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_06":{"col":"1/span 1","row":"1/span 1"},"BOX_04":{"col":"2/span 1","row":"1/span 1"},"BOX_02":{"col":"3/span 1","row":"1/span 1"},"BOX_07":{"col":"1/span 1","row":"2/span 1"},"BOX_05":{"col":"2/span 1","row":"2/span 1"},"BOX_03":{"col":"3/span 1","row":"2/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 2"}}},"8BOX":{"cols":"repeat(4, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_07":{"col":"1/span 1","row":"1/span 1"},"BOX_05":{"col":"2/span 1","row":"1/span 1"},"BOX_03":{"col":"3/span 1","row":"1/span 1"},"BOX_01":{"col":"4/span 1","row":"1/span 1"},"BOX_08":{"col":"1/span 1","row":"2/span 1"},"BOX_06":{"col":"2/span 1","row":"2/span 1"},"BOX_04":{"col":"3/span 1","row":"2/span 1"},"BOX_02":{"col":"4/span 1","row":"2/span 1"}}},"9BOX":{"cols":"repeat(5, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_08":{"col":"1/span 1","row":"1/span 1"},"BOX_06":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"3/span 1","row":"1/span 1"},"BOX_02":{"col":"4/span 1","row":"1/span 1"},"BOX_09":{"col":"1/span 1","row":"2/span 1"},"BOX_07":{"col":"2/span 1","row":"2/span 1"},"BOX_05":{"col":"3/span 1","row":"2/span 1"},"BOX_03":{"col":"4/span 1","row":"2/span 1"},"BOX_01":{"col":"5/span 1","row":"1/span 2"}}},"10BOX":{"cols":"repeat(5, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_09":{"col":"1/span 1","row":"1/span 1"},"BOX_07":{"col":"2/span 1","row":"1/span 1"},"BOX_04":{"col":"3/span 1","row":"1/span 1"},"BOX_03":{"col":"4/span 1","row":"1/span 1"},"BOX_01":{"col":"5/span 1","row":"1/span 1"},"BOX_10":{"col":"1/span 1","row":"2/span 1"},"BOX_08":{"col":"2/span 1","row":"2/span 1"},"BOX_06":{"col":"3/span 1","row":"2/span 1"},"BOX_05":{"col":"4/span 1","row":"2/span 1"},"BOX_02":{"col":"5/span 1","row":"2/span 1"}}},"12BOX":{"cols":"repeat(6, 1fr)","rows":"repeat(2, 1fr)","boxes":{"BOX_11":{"col":"1/span 1","row":"1/span 1"},"BOX_09":{"col":"2/span 1","row":"1/span 1"},"BOX_07":{"col":"3/span 1","row":"1/span 1"},"BOX_05":{"col":"4/span 1","row":"1/span 1"},"BOX_03":{"col":"5/span 1","row":"1/span 1"},"BOX_01":{"col":"6/span 1","row":"1/span 1"},"BOX_12":{"col":"1/span 1","row":"2/span 1"},"BOX_10":{"col":"2/span 1","row":"2/span 1"},"BOX_08":{"col":"3/span 1","row":"2/span 1"},"BOX_06":{"col":"4/span 1","row":"2/span 1"},"BOX_04":{"col":"5/span 1","row":"2/span 1"},"BOX_02":{"col":"6/span 1","row":"2/span 1"}}}};
+            const persistentLayoutNames = new Set(["1BOX","2BOX","2BOX_BIG_SMALL","3BOX","4BOX","5BOX","6BOX","7BOX","3BOX_SP","7BOX_CENTER","8BOX","9BOX","10BOX","12BOX"]);
+
+            function renderTruePersistent2Box(stageId, data, onair) {
+                const stage = initTruePersistent2BoxStage(stageId, onair);
+                if (!stage || !data || !persistentLayoutNames.has(data.boxTypeName)) return false;
+
+                const usedInputs = new Set();
+
+                // On Air banks are lazy + cached. Preview already has AUX1-AUX12 hot.
+                if (onair) {
+                    data.boxOrder.forEach(item => {
+                        if (item.input < 0 || item.input > 11) return;
+                        createPersistentInput(stage, item.input, true);
+                    });
+                }
+
+                if (data.boxTypeName === "1BOX") {
+                    stage.style.gridTemplateColumns = "1fr";
+                    stage.style.gridTemplateRows = "1fr";
+                } else if (data.boxTypeName === "2BOX") {
+                    stage.style.gridTemplateColumns = "repeat(2, 1fr)";
+                    stage.style.gridTemplateRows = "1fr";
+                } else {
+                    const rule = persistentLayoutRules[data.boxTypeName];
+                    stage.style.gridTemplateColumns = rule.cols;
+                    stage.style.gridTemplateRows = rule.rows;
+                }
+
+                data.boxOrder.forEach(item => {
+                    if (item.input < 0 || item.input > 11) return;
+
+                    const box = stage.querySelector(`.p2-box[data-input="${item.input}"]`);
+                    if (!box) return;
+
+                    usedInputs.add(item.input);
+                    box.dataset.box = item.box;
+                    box.classList.remove("p2-hidden");
+
+                    const stream = box.querySelector(".p2-stream");
+                    if (stream) {
+                        let sourceScale = 1;
+                    //scale source fits box
+                        if (data.boxTypeName === "2BOX") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "2BOX_BIG_SMALL") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "3BOX") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                            if (item.box === "BOX_03") sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "3BOX_SP") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                            if (item.box === "BOX_03") sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "4BOX") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                            if (item.box === "BOX_03") sourceScale = 1;
+                            if (item.box === "BOX_04") sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "5BOX") {
+                            if (item.box === "BOX_01") sourceScale = 1;
+                            if (item.box === "BOX_02") sourceScale = 1;
+                            if (item.box === "BOX_03") sourceScale = 1;
+                            if (item.box === "BOX_04") sourceScale = 1;
+                            if (item.box === "BOX_05") sourceScale = 1;
+                        }
+
+                        if (["8BOX", "10BOX", "12BOX"].includes(data.boxTypeName)) {
+                            sourceScale = 1;
+                        }
+
+                        if (data.boxTypeName === "9BOX") {
+                            sourceScale = item.box === "BOX_01" ? 1 : 1;
+                        }
+
+                        stream.style.transform = `scale(${sourceScale})`;
+                        stream.style.transformOrigin = "center center";
+                    }
+
+                    if (data.boxTypeName === "1BOX") {
+                        box.style.gridColumn = "1 / span 1";
+                        box.style.gridRow = "1 / span 1";
+                    } else if (data.boxTypeName === "2BOX") {
+                        box.style.gridColumn = item.box === "BOX_01" ? "2 / span 1" : "1 / span 1";
+                        box.style.gridRow = "1 / span 1";
+                    } else {
+                        const rule = persistentLayoutRules[data.boxTypeName];
+                        const pos = rule.boxes[item.box];
+                        if (!pos) {
+                            box.classList.add("p2-hidden");
+                            return;
+                        }
+                        box.style.gridColumn = pos.col;
+                        box.style.gridRow = pos.row;
+                    }
+
+                    box.querySelector(".p2-label").textContent =
+                        `${item.box.replace("_", " ")} · LIVE INPUT ${item.input + 1}`;
+                });
+
+                stage.querySelectorAll(".p2-box").forEach(box => {
+                    if (!usedInputs.has(Number(box.dataset.input))) {
+                        box.classList.add("p2-hidden");
+                    }
+                });
+
+                stage.classList.add("show");
+                return true;
+            }
+
+            // FULL STARTUP CACHE TEST:
+            // Quick Zoom also keeps AUX1-AUX12 connected from startup.
+            (() => {
+                const host = document.getElementById("p2QuickZoomStream");
+                if (host && host.dataset.ready !== "1") {
+                    for (let input = 0; input < 12; input++) {
+                        //const player = document.createElement("iframe");
+                        const player = document.createElement("img");
+                        player.className = "p2-qz-player";
+                        //player.src = `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+                        //player.src = "black.png";
+                        player.src = `/images/live${input + 1}.png`;
+                        //player.allow = "autoplay; fullscreen";
+                        player.frameBorder = "0";
+                        host.appendChild(player);
+                    }
+                    host.dataset.ready = "1";
+                }
+            })();
+
+            // Preview A/B + On Air A/B all preload AUX1-AUX12 once.
+            initTruePersistent2BoxStage("p2PreviewBankA", false);
+            initTruePersistent2BoxStage("p2PreviewBankB", false);
+            initTruePersistent2BoxStage("p2OnAirBankA", true);
+            initTruePersistent2BoxStage("p2OnAirBankB", true);
+
+            let persistentPreviewBank = "A";
+            let persistentPreviewHasOutput = false;
+
             function showLayoutPreview(data) {
                 const preview = document.getElementById("layoutPreview");
                 const loading = document.getElementById("previewLoading");
+                const bankA = document.getElementById("p2PreviewBankA");
+                const bankB = document.getElementById("p2PreviewBankB");
 
+                if (data && persistentLayoutNames.has(data.boxTypeName)) {
+                    loading.classList.remove("show");
+                    preview.style.display = "none";
+
+                    if (!persistentPreviewHasOutput) {
+                        const first = persistentPreviewBank === "A" ? bankA : bankB;
+                        const other = first === bankA ? bankB : bankA;
+
+                        renderTruePersistent2Box(first.id, data, false);
+                        first.classList.remove("p2-preview-under");
+                        first.classList.add("p2-preview-active");
+                        other.classList.remove("p2-preview-active");
+                        other.classList.add("p2-preview-under");
+                        persistentPreviewHasOutput = true;
+                        return;
+                    }
+
+                    // TRUE PREVIEW CROSS DISSOLVE — same A/B-bank method as On Air.
+                    // Old layout stays untouched in current bank while the new layout
+                    // is prepared in the hidden bank, then opacity is crossfaded.
+                    const current = persistentPreviewBank === "A" ? bankA : bankB;
+                    const next = persistentPreviewBank === "A" ? bankB : bankA;
+
+                    renderTruePersistent2Box(next.id, data, false);
+                    next.classList.remove("p2-preview-active");
+                    next.classList.add("p2-preview-under");
+
+                    // Commit the new bank at opacity 0 before starting the dissolve.
+                    next.getBoundingClientRect();
+
+                    requestAnimationFrame(() => {
+                        next.classList.remove("p2-preview-under");
+                        next.classList.add("p2-preview-active");
+
+                        current.classList.remove("p2-preview-active");
+                        current.classList.add("p2-preview-under");
+                    });
+
+                    persistentPreviewBank = persistentPreviewBank === "A" ? "B" : "A";
+                    return;
+                }
+
+                // Non-persistent layout: leave the A/B preview path and use the original iframe.
+                bankA.classList.remove("p2-preview-active", "show");
+                bankB.classList.remove("p2-preview-active", "show");
+                bankA.classList.add("p2-preview-under");
+                bankB.classList.add("p2-preview-under");
+                persistentPreviewHasOutput = false;
+
+                preview.style.display = "";
                 loading.classList.add("show");
+                preview.style.transition = "none";
+                preview.style.opacity = "0";
 
                 preview.onload = () => {
-
-                    preview.contentWindow.postMessage(
-                        data,
-                        "*"
-                    );
-
-                    loading.classList.remove("show");
+                    preview.contentWindow.postMessage(data, "*");
+                    setTimeout(() => {
+                        loading.classList.remove("show");
+                        preview.getBoundingClientRect();
+                        preview.style.transition = "opacity 700ms ease";
+                        preview.style.opacity = "1";
+                    }, 100);
                 };
 
-                preview.src =
-                    `/layouts/${data.boxTypeName}.html`;
+                preview.src = `/layouts/${data.boxTypeName}.html`;
             }
-            //note2
-            function showOnAirPreview(data) {
 
-                const preview = document.getElementById("onAirPreview");
+            let activeOnAirLayer = "A";
+            let onAirTransitionToken = 0;
+
+            let persistentOnAirBank = "A";
+            let persistentOnAirHasOutput = false;
+
+            function showOnAirPreview(data) {
                 const empty = document.getElementById("onAirEmpty");
+                const p2Mask = document.getElementById("p2OnAirMask");
+
+                if (data && persistentLayoutNames.has(data.boxTypeName)) {
+                    ++onAirTransitionToken;
+                    if (empty) empty.style.display = "none";
+
+                    document.getElementById("onAirPreviewA").style.display = "none";
+                    document.getElementById("onAirPreviewB").style.display = "none";
+
+                    const bankA = document.getElementById("p2OnAirBankA");
+                    const bankB = document.getElementById("p2OnAirBankB");
+
+                    if (!persistentOnAirHasOutput || p2Mask.classList.contains("cover")) {
+                        const first = persistentOnAirBank === "A" ? bankA : bankB;
+                        renderTruePersistent2Box(first.id, data, true);
+
+                        bankA.classList.remove("p2-bank-active", "p2-bank-under");
+                        bankB.classList.remove("p2-bank-active", "p2-bank-under");
+
+                        first.classList.add("p2-bank-active");
+                        (first === bankA ? bankB : bankA).classList.add("p2-bank-under");
+
+                        p2Mask.classList.remove("cover");
+                        persistentOnAirHasOutput = true;
+                        return;
+                    }
+
+                    // TRUE CROSS DISSOLVE:
+                    // current bank stays visible with OLD layout.
+                    // next bank already owns its own permanent AUX players,
+                    // receives NEW layout, then both banks cross opacity.
+                    const current = persistentOnAirBank === "A" ? bankA : bankB;
+                    const next = persistentOnAirBank === "A" ? bankB : bankA;
+
+                    renderTruePersistent2Box(next.id, data, true);
+
+                    next.classList.remove("p2-bank-active");
+                    next.classList.add("p2-bank-under");
+
+                    // Commit next bank at opacity 0 first.
+                    next.getBoundingClientRect();
+
+                    requestAnimationFrame(() => {
+                        next.classList.remove("p2-bank-under");
+                        next.classList.add("p2-bank-active");
+
+                        current.classList.remove("p2-bank-active");
+                        current.classList.add("p2-bank-under");
+                    });
+
+                    persistentOnAirBank = persistentOnAirBank === "A" ? "B" : "A";
+                    p2Mask.classList.remove("cover");
+                    return;
+                }
+
+                document.getElementById("p2OnAirBankA").classList.remove("p2-bank-active");
+                document.getElementById("p2OnAirBankB").classList.remove("p2-bank-active");
+                p2Mask.classList.remove("cover");
+                document.getElementById("onAirPreviewA").style.display = "";
+                document.getElementById("onAirPreviewB").style.display = "";
+
+                const current = document.getElementById(
+                    activeOnAirLayer === "A" ? "onAirPreviewA" : "onAirPreviewB"
+                );
+                const next = document.getElementById(
+                    activeOnAirLayer === "A" ? "onAirPreviewB" : "onAirPreviewA"
+                );
+                const nextLayerName = activeOnAirLayer === "A" ? "B" : "A";
+                const token = ++onAirTransitionToken;
+
                 if (empty) empty.style.display = "none";
 
-                preview.onload = () => {
-                    preview.contentWindow.postMessage(
+                next.onload = () => {
+                    if (token !== onAirTransitionToken) return;
+
+                    next.contentWindow.postMessage(
                         {
                             ...data,
                             previewMode: "onair"
                         },
                         "*"
                     );
+
+                    setTimeout(() => {
+                        if (token !== onAirTransitionToken) return;
+
+                        next.classList.add("active-layer");
+                        current.classList.remove("active-layer");
+
+                        setTimeout(() => {
+                            if (token !== onAirTransitionToken) return;
+                            current.src = "";
+                            //cross disolve
+                            activeOnAirLayer = nextLayerName;
+                        }, 500);
+                    }, 100);
                 };
 
-                preview.src = `/layouts/${data.boxTypeName}.html`;
+                next.classList.remove("active-layer");
+                next.src = `/layouts/${data.boxTypeName}.html`;
             }
             //note2
 
@@ -1613,7 +3144,7 @@
                 console.error("Preview event connection error:", err);
             };
 
-            window.addEventListener("message", event => {
+            window.addEventListener("message", async event => {
 
                 const data = event.data;
 
@@ -1643,6 +3174,7 @@
 
                 if (newLayout) {
                     currentLayoutData.boxType = newLayout.boxType;
+                    currentLayoutData.boxTypeName = newLayout.boxTypeName;
                 }
 
                 console.log(
@@ -1667,13 +3199,24 @@
             }
 
             async function sendToViz() {
-                await takeElement()
-                setBoxIndex();
+                if (layoutEdited) {
+                    await takeElementMSE(false);
+                    await setBoxIndex();
+
+                    // IMPORTANT:
+                    // tetap edit-mode sampai operator tekan BACK.
+                    // Jadi TAKE tetap disabled, SEND TO VIZ tetap enabled.
+                    updateActionButtons();
+                    return;
+                }
+
+                await takeElementMSE();
+                await setBoxIndex();
             }
 
-            async function setBoxIndex() {
+            async function setBoxIndex(layoutData = currentLayoutData) {
 
-                const data = currentLayoutData;
+                const data = layoutData;
 
                 const targetLayout = boxLayouts.find(
                     item => item.boxType === data.boxType
@@ -2017,6 +3560,26 @@
             // TAKE
             // ==========================================
             async function takeElement() {
+                // ONE TAKE BUTTON, existing execution paths preserved:
+                // quick zoom -> old Quick Zoom setBoxIndex path
+                // edited/delete -> old SEND TO VIZ path
+                // normal -> old MSE TAKE path
+                if (quickZoomPendingData) {
+                    const zoomData = structuredClone(quickZoomPendingData);
+                    await setBoxIndex(zoomData);
+                    closePersistentQuickZoom();
+                    return;
+                }
+
+                if (layoutEdited) {
+                    await sendToViz();
+                    return;
+                }
+
+                await takeElementMSE();
+            }
+
+            async function takeElementMSE(updateOnAirPreview = true) {
 
                 console.log("TAKE BODY CHECK:", selectedElementId);
 
@@ -2033,7 +3596,7 @@
                 console.log("TAKE STATUS:", response.status);
                 console.log("TAKE RESPONSE:", result);
 
-                if (response.ok) {
+                if (response.ok && updateOnAirPreview) {
                     onAirLayoutData = structuredClone(currentLayoutData);
 
                     console.log("ON AIR JSON:", onAirLayoutData);
@@ -2043,14 +3606,16 @@
             }
 
             // ==========================================
-            // TAKE
+            // TAKE OUT
             // ==========================================
             async function takeOutElement() {
 
-                if (!selectedElementUrl) {
+                if (!selectedElementId) {
                     console.log("NO ELEMENT SELECTED");
                     return;
                 }
+
+                console.log("OUT BODY CHECK:", selectedElementId);
 
                 const response = await fetch("/api/out", {
                     method: "POST",
@@ -2062,8 +3627,52 @@
 
                 const result = await response.text();
 
-                console.log("TAKE STATUS:", response.status);
-                console.log("TAKE RESPONSE:", result);
+                console.log("OUT STATUS:", response.status);
+                console.log("OUT RESPONSE:", result);
+
+                if (response.ok) {
+                    const onAirPreviewA = document.getElementById("onAirPreviewA");
+                    const onAirPreviewB = document.getElementById("onAirPreviewB");
+                    const onAirEmpty = document.getElementById("onAirEmpty");
+
+                    ++onAirTransitionToken;
+
+                    const p2OnAirMask = document.getElementById("p2OnAirMask");
+                    const bankA = document.getElementById("p2OnAirBankA");
+                    const bankB = document.getElementById("p2OnAirBankB");
+
+                    // OUT DISSOLVE for persistent layouts:
+                    // fade the currently visible bank first.
+                    // Do NOT cover it with the mask until the fade is finished.
+                    if (persistentOnAirHasOutput) {
+                        const activeBank = persistentOnAirBank === "A" ? bankA : bankB;
+                        activeBank.classList.remove("p2-bank-active");
+                        activeBank.classList.add("p2-bank-under");
+                    }
+
+                    // Existing iframe On Air path also fades via active-layer opacity.
+                    onAirPreviewA.classList.remove("active-layer");
+                    onAirPreviewB.classList.remove("active-layer");
+
+                    setTimeout(() => {
+                        // Only cover after the dissolve has completed.
+                        p2OnAirMask.classList.add("cover");
+
+                        bankA.classList.remove("p2-bank-active");
+                        bankB.classList.remove("p2-bank-active");
+                        bankA.classList.add("p2-bank-under");
+                        bankB.classList.add("p2-bank-under");
+
+                        persistentOnAirHasOutput = false;
+                        onAirLayoutData = null;
+                        onAirPreviewA.src = "";
+                        onAirPreviewB.src = "";
+                        activeOnAirLayer = "A";
+                        onAirEmpty.style.display = "flex";
+
+                        console.log("ON AIR CLEARED WITH DISSOLVE");
+                    }, 650);
+                }
             }
 
             //erefresh mse
@@ -2076,6 +3685,17 @@
 
             //console.log("MSE REFRESHED");
             //}
+
+            let templateConfig = {};
+
+            async function loadTemplateConfig() {
+                const response = await fetch("/api/template-config", {
+                    cache: "no-store"
+                });
+
+                const data = await response.json();
+                templateConfig = data.templates;
+            }
 
             async function checkPlaylistStatus() {
                 try {
@@ -2117,7 +3737,7 @@
             }
             async function refreshSystemStatus() {
                 try {
-                    const response = await fetch("/api/status", {cache: "no-store"});
+                    const response = await fetch("/api/status", { cache: "no-store" });
                     const status = await response.json();
                     setConnectionStatus("mse", status.mse.connected, `${status.mse.host}:${status.mse.port}`);
                     setConnectionStatus("engine", status.engine.connected, `${status.engine.host}:${status.engine.port}`);
@@ -2140,7 +3760,7 @@
             }
 
             async function openSettings() {
-                const response = await fetch("/api/settings", {cache: "no-store"});
+                const response = await fetch("/api/settings", { cache: "no-store" });
                 const cfg = await response.json();
                 console.log(cfg);
                 document.getElementById("settingMseHost").value = cfg.mse.host;
@@ -2149,6 +3769,7 @@
                 document.getElementById("settingEngineHost").value = cfg.engine.host;
                 document.getElementById("settingEnginePort").value = cfg.engine.port;
                 document.getElementById("settingPlaylistId").value = cfg.playlist.playlistid;
+                document.getElementById("settingReceiveDirector").checked = cfg.director?.enabled !== false;
                 document.getElementById("settingsModal").classList.add("show");
             }
 
@@ -2170,11 +3791,14 @@
                     ,
                     playlist: {
                         playlistid: document.getElementById("settingPlaylistId").value.trim()
+                    },
+                    director: {
+                        enabled: document.getElementById("settingReceiveDirector").checked
                     }
                 };
                 const response = await fetch("/api/settings", {
                     method: "PUT",
-                    headers: {"Content-Type": "application/json"},
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(settings)
                 });
                 if (!response.ok) {
@@ -2197,7 +3821,7 @@
 
             async function reconnectServices() {
                 try {
-                    await fetch("/api/reconnect", {method: "POST"});
+                    await fetch("/api/reconnect", { method: "POST" });
                 } catch (err) { }
 
                 elementCache.clear();
@@ -2215,14 +3839,82 @@
 
                 console.log("RECONNECTED SERVICES");
             }
+            // UI-only selection state for Input Sources and Layout Templates
+            document.querySelectorAll(".source-card").forEach((card, index) => {
+                card.addEventListener("click", () => {
+                    document.querySelectorAll(".source-card").forEach(x => x.classList.remove("selected"));
+                    card.classList.add("selected");
+                    const status = document.getElementById("selectedSourceStatus");
+                    if (status) status.textContent = `INPUT ${String(index + 1).padStart(2, "0")}`;
+                });
+            });
+            /*
+                        document.querySelectorAll(".template-card").forEach(card => {
+                            card.addEventListener("click", () => {
+                                document.querySelectorAll(".template-card").forEach(x => x.classList.remove("selected"));
+                                card.classList.add("selected");
+                                const name = card.querySelector(".template-name")?.textContent?.trim() || "NONE";
+                                const status = document.getElementById("selectedTemplateStatus");
+                                if (status) status.textContent = name;
+                            });
+                        });
+            */
+
+            document.querySelectorAll(".template-card").forEach(card => {
+                card.addEventListener("click", async () => {
+
+                    document.querySelectorAll(".template-card").forEach(x => {
+                        x.classList.remove("selected");
+                    });
+
+                    card.classList.add("selected");
+
+                    const name =
+                        card.querySelector(".template-name").textContent.trim();
+
+                    const status = document.getElementById("selectedTemplateStatus");
+                    if (status) {
+                        status.textContent = name;
+                    }
+
+                    const template = templateConfig[name];
+
+                    if (!template) {
+                        console.error("Template config not found:", name);
+                        return;
+                    }
+
+                    const payload = `<payload>
+    <field name="source">
+        <value>local</value>
+    </field>
+    <field name="setBoxes">
+        <value>${template.setBoxes}</value>
+    </field>
+    <field name="elementId">
+        <value>${template.elementId}</value>
+    </field>
+</payload>`;
+
+                    await fetch("/preview", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/xml"
+                        },
+                        body: payload
+                    });
+                });
+            });
             // ==========================================
             // START
             // ==========================================
-
+            loadTemplateConfig();
             loadPlaylists();
             updateActionButtons();
+            
+            reconnectServices();
             refreshSystemStatus();
-            setInterval(refreshSystemStatus, 120000);
+            setInterval(refreshSystemStatus, 130000);
 
 
             //document.getElementById("input01").src = "http://127.0.0.1:8889/aux1?autoplay=true&muted=true&controls=false";
@@ -2249,4 +3941,52 @@
         background: #1b2024;
         border-color: #2b3136;
     }
+
+
+    /* Two-row layout template grid */
+    .template-strip {
+        display: grid !important;
+        grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+        grid-auto-flow: row !important;
+        gap: 6px !important;
+        padding: 6px 8px 7px !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+    }
+
+
+    .template-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 85% !important;
+        min-height: 0 !important;
+    }
+
+    .template-thumb {
+        width: calc(100% - 6px) !important;
+        height: calc(100% - 18px) !important;
+        min-height: 0 !important;
+        margin: 3px 3px 1px !important;
+        object-fit: contain !important;
+    }
+
+    .template-name {
+        height: 25px !important;
+        line-height: 25px !important;
+        font-size: 12px !important;
+        text-align: center !important;
+    }
+
+    body.hide-sources .sources-panel {
+        display: none !important;
+    }
+
+    body.hide-sources .layout-templates-panel {
+        top: calc(var(--f-edge) + var(--f-top-h) + var(--f-gap)) !important;
+        bottom: calc(var(--f-edge) + var(--f-status) + var(--f-gap)) !important;
+        height: auto !important;
+    }
+
+
 </style>

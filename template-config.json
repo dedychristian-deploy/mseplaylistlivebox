@@ -1,0 +1,61 @@
+{
+    "templates": {
+        "1BOX": {
+            "setBoxes": 0,
+            "elementId": "/external/pilotdb/elements/85"
+        },
+        "2BOX": {
+            "setBoxes": 1,
+            "elementId": "/external/pilotdb/elements/86"
+        },
+        "2BOX_BIG_SMALL": {
+            "setBoxes": 2,
+            "elementId": "/external/pilotdb/elements/87"
+        },
+        "3BOX": {
+            "setBoxes": 3,
+            "elementId": "/external/pilotdb/elements/88"
+        },
+        "3BOX_SP": {
+            "setBoxes": 4,
+            "elementId": "/external/pilotdb/elements/89"
+        },
+        "4BOX": {
+            "setBoxes": 5,
+            "elementId": "/external/pilotdb/elements/90"
+        },
+        "5BOX": {
+            "setBoxes": 6,
+            "elementId": "/external/pilotdb/elements/91"
+        },
+        "6BOX": {
+            "setBoxes": 7,
+            "elementId": "/external/pilotdb/elements/92"
+        },
+        "7BOX": {
+            "setBoxes": 8,
+            "elementId": "/external/pilotdb/elements/93"
+        }
+        ,
+        "7BOX_CENTER": {
+            "setBoxes": 9,
+            "elementId": "/external/pilotdb/elements/94"
+        }        ,
+        "8BOX": {
+            "setBoxes": 10,
+            "elementId": "/external/pilotdb/elements/95"
+        }        ,
+        "9BOX": {
+            "setBoxes": 11,
+            "elementId": "/external/pilotdb/elements/96"
+        }        ,
+        "10BOX": {
+            "setBoxes": 12,
+            "elementId": "/external/pilotdb/elements/97"
+        }        ,
+        "12BOX": {
+            "setBoxes": 13,
+            "elementId": "/external/pilotdb/elements/98"
+        }
+    }
+}

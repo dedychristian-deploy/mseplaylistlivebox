@@ -24,7 +24,7 @@
             gap: 5px;
             padding: 5px;
             box-sizing: border-box;
-            animation: boxIn 220ms ease-out both
+            animation: boxIn 500ms ease-out both
         }
 
         [data-box="BOX_02"] {
@@ -56,7 +56,7 @@
             min-width: 0;
             min-height: 0;
             box-sizing: border-box;
-            animation: boxIn 220ms ease-out both
+            animation: boxIn 500ms ease-out both
         }
 
         .delete-box {
@@ -86,15 +86,8 @@
         }
 
         @keyframes boxIn {
-            from {
-                opacity: 0;
-                transform: scale(.96)
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1)
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .box-label {
@@ -121,7 +114,6 @@
             text-transform: uppercase
         }
     </style>
-
     <style id="layout-polish">
         .box {
             background: #272d33 !important;
@@ -162,27 +154,22 @@
             border-color: #667786 !important;
         }
 
-.live-stream {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    border: 0;
-    z-index: 0;
-    background: #000;
-    transform: translate(-50%, -50%);
-    transform-origin: center;
-}
+        .live-stream {
+            pointer-events: none !important;
+            position: absolute;
+            top: 50%;
+            left: 50%;
 
-[data-box="BOX_02"] .live-stream,
-[data-box="BOX_03"] .live-stream {
-    transform: translate(-50%, -50%) scale(1.15);
-}
+            width: 100%;
+            height: 100%;
 
-[data-box="BOX_01"] .live-stream {
-    transform: translate(-50%, -50%) scale(2.5);
-}
+            border: 0;
+            z-index: 0;
+            background: #000;
+
+            transform: translate(-50%, -50%) scale(1);
+            transform-origin: center center;
+        }
 
         .box-label {
             position: absolute;
@@ -200,11 +187,267 @@
         }
     </style>
 
+
+<style id="quick-zoom-overlay-final">
+    .box {
+        cursor: pointer;
+    }
+
+    #quickZoomModal {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: none;
+        padding: 5px;
+        box-sizing: border-box;
+        background: rgba(4, 8, 12, .64);
+        font-family: Arial, sans-serif;
+    }
+
+    #quickZoomModal.open {
+        display: block;
+    }
+
+    .quick-zoom-dialog {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #05090d;
+        border: 1px solid rgba(72, 106, 132, .55);
+        border-radius: 6px;
+        box-shadow: 0 12px 38px rgba(0, 0, 0, .42);
+        transform-origin: center center;
+    }
+
+    #quickZoomModal.open {
+        display: block;
+        animation: quickZoomOpen 500ms ease both;
+    }
+
+    #quickZoomModal.closing {
+        animation: quickZoomClose 350ms ease both;
+    }
+
+    .quick-zoom-title {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 5;
+        height: 28px;
+        padding: 0 10px;
+        display: flex;
+        align-items: center;
+        color: #dce5ec;
+        background: rgba(10, 16, 22, .78);
+        border: 1px solid rgba(82, 103, 119, .45);
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .35px;
+        pointer-events: none;
+        display: none !important;
+    }
+
+    #quickZoomClose {
+        display: none;
+    }
+
+    .quick-zoom-body {
+        position: absolute;
+        inset: 0;
+    }
+
+    .quick-zoom-preview {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .quick-zoom-stream {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+    }
+
+    .quick-zoom-label {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 4;
+        padding: 6px 9px;
+        color: #fff;
+        background: rgba(0, 0, 0, .68);
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .15px;
+    }
+
+    .quick-zoom-actions {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 6;
+        display: flex;
+        gap: 7px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .quick-zoom-actions button {
+        height: 32px;
+        padding: 0 15px;
+        border: 1px solid rgba(92, 108, 121, .78);
+        border-radius: 5px;
+        background: rgba(24, 32, 39, .9);
+        color: #dce4ea;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,.25);
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+    }
+
+    .quick-zoom-actions button:hover {
+        background: rgba(38, 49, 58, .96);
+        border-color: #758592;
+    }
+
+    .quick-zoom-actions button:active {
+        transform: translateY(1px);
+    }
+
+    #quickZoomSend {
+        min-width: 116px;
+        background: rgba(40, 123, 196, .94);
+        border-color: #3b98e8;
+        color: #fff;
+    }
+
+    #quickZoomSend:hover {
+        background: #3289d5;
+    }
+@keyframes quickZoomOpen {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes quickZoomClose {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+</style>
+
 </head>
 
 <body>
     <div id="layout"></div>
+
+    <div id="quickZoomModal">
+        <div class="quick-zoom-dialog">
+            <div class="quick-zoom-title">
+                <span id="quickZoomTitle"></span>
+                <button id="quickZoomClose" type="button" aria-label="Close"></button>
+            </div>
+            <div class="quick-zoom-body">
+                <div class="quick-zoom-preview">
+                    <iframe id="quickZoomStream" class="quick-zoom-stream" allow="autoplay; fullscreen"></iframe>
+                    <div id="quickZoomLabel" class="quick-zoom-label">BOX 01 · LIVE INPUT 1</div>
+                </div>
+                <div class="quick-zoom-actions">
+                    <button id="quickZoomCancel" type="button">CANCEL</button>
+                    <button id="quickZoomSend" type="button">SEND TO VIZ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let selectedZoomInput = null;
+
+        const quickZoomModal = document.getElementById("quickZoomModal");
+        const quickZoomStream = document.getElementById("quickZoomStream");
+        const quickZoomTitle = document.getElementById("quickZoomTitle");
+        const quickZoomLabel = document.getElementById("quickZoomLabel");
+        const quickZoomCancel = document.getElementById("quickZoomCancel");
+        const quickZoomClose = document.getElementById("quickZoomClose");
+        const quickZoomSend = document.getElementById("quickZoomSend");
+
+        function openQuickZoom(input) {
+            selectedZoomInput = input;
+            quickZoomTitle.textContent = `QUICK ZOOM — LIVE INPUT ${input + 1}`;
+            quickZoomLabel.textContent = `BOX 01 · LIVE INPUT ${input + 1}`;
+            quickZoomStream.src =
+                `http://127.0.0.1:8889/aux${input + 1}?autoplay=true&muted=true&controls=false`;
+            quickZoomModal.classList.add("open");
+        }
+
+        function closeQuickZoom() {
+            if (!quickZoomModal.classList.contains("open")) return;
+
+            quickZoomModal.classList.add("closing");
+
+            setTimeout(() => {
+                quickZoomModal.classList.remove("open", "closing");
+                quickZoomStream.src = "about:blank";
+                selectedZoomInput = null;
+            }, 350);
+        }
+
+        quickZoomCancel.addEventListener("click", () => {
+            closeQuickZoom();
+        });
+
+        quickZoomClose.addEventListener("click", () => {
+            closeQuickZoom();
+        });
+
+        quickZoomSend.addEventListener("click", () => {
+            if (selectedZoomInput === null) return;
+
+            const zoomState = {
+                boxType: 0,
+                boxTypeName: "1BOX",
+                boxOrder: [
+                    {
+                        box: "BOX_01",
+                        input: selectedZoomInput
+                    }
+                ]
+            };
+
+            window.parent.postMessage({
+                action: "quickZoomSendToViz",
+                layoutData: zoomState
+            }, "*");
+
+            closeQuickZoom();
+        });
+
+        quickZoomModal.addEventListener("click", event => {
+            if (event.target === quickZoomModal) {
+                closeQuickZoom();
+            }
+        });
+
         window.addEventListener("message", event => {
 
             const data = event.data;
@@ -223,6 +466,12 @@
 
                 const box = document.createElement("div");
                 box.className = "box";
+
+                box.addEventListener("dblclick", event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openQuickZoom(input);
+                });
 
 
 
@@ -244,7 +493,7 @@
 
                 const boxLabel = document.createElement("span");
                 boxLabel.className = "box-name";
-                boxLabel.textContent = boxLabel.textContent = boxLabel.textContent = `BOX ${String(input + 1).padStart(2, "0")}`;
+                boxLabel.textContent = boxName.replace("_", " ");
 
 
                 const inputLabel = document.createElement("span");
@@ -256,6 +505,7 @@
                 const del = document.createElement("button");
                 del.className = "delete-box";
                 del.textContent = "×";
+                del.addEventListener("dblclick", event => event.stopPropagation());
 
                 del.onclick = () =>
                     window.parent.postMessage(

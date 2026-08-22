@@ -1,12 +1,29 @@
+const fs = require("fs");
+const path = require("path");
 
-const config = require("../config.json");
+const CONFIG_PATH = path.join(__dirname, "../config.json");
 
-const MSE_HOST = config.mse.host;
-const MSE_PORT = config.mse.port;
-const MSE_PROFILE = config.mse.profile;
+function getConfig() {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+}
 
+function getMseConfig() {
+    const config = getConfig();
 
-const MSE_URL = `http://${MSE_HOST}:${MSE_PORT}`;
+    const MSE_HOST = config.mse.host;
+    const MSE_PORT = config.mse.port;
+    const MSE_PROFILE = config.mse.profile;
+    const MSE_URL = `http://${MSE_HOST}:${MSE_PORT}`;
+    const PLAYLIST_ID = config.playlist.playlistid;
+
+    return {
+        MSE_HOST,
+        MSE_PORT,
+        MSE_PROFILE,
+        MSE_URL,
+        PLAYLIST_ID
+    };
+}
 
 async function request(url, options = {}) {
     const response = await fetch(url, options);
@@ -19,6 +36,8 @@ async function request(url, options = {}) {
 }
 
 function getPlaylists() {
+    const { MSE_URL } = getMseConfig();
+
     return request(`${MSE_URL}/directory/playlists/`, {
         method: "GET",
         headers: {
@@ -28,10 +47,10 @@ function getPlaylists() {
 }
 
 async function getPlaylistActivation() {
-    const playlistId = config.playlist.playlistid;
+    const { MSE_URL, PLAYLIST_ID } = getMseConfig();
 
     const response = await request(
-        `${MSE_URL}/activation/storage/playlists/${playlistId}`,
+        `${MSE_URL}/activation/storage/playlists/${PLAYLIST_ID}`,
         {
             method: "GET",
             headers: {
@@ -42,10 +61,13 @@ async function getPlaylistActivation() {
 
     return {
         ...response,
-        playlistId
+        playlistId: PLAYLIST_ID
     };
 }
+
 function getElements(path) {
+    const { MSE_URL } = getMseConfig();
+
     return request(`${MSE_URL}${path}`, {
         method: "GET",
         headers: {
@@ -64,6 +86,8 @@ function getElement(url) {
 }
 
 function activatePlaylist(uuid) {
+    const { MSE_URL, MSE_PROFILE } = getMseConfig();
+
     const body = `<playlistactivation>
   <active_on_profile>${MSE_URL}/profiles/${MSE_PROFILE}</active_on_profile>
 </playlistactivation>`;
@@ -78,6 +102,8 @@ function activatePlaylist(uuid) {
 }
 
 function cleanupPlaylist(uuid) {
+    const { MSE_URL, MSE_PROFILE } = getMseConfig();
+
     return request(`${MSE_URL}/profiles/${MSE_PROFILE}/cleanup`, {
         method: "POST",
         headers: {
@@ -88,6 +114,8 @@ function cleanupPlaylist(uuid) {
 }
 
 function takeElement(elementUrl) {
+    const { MSE_URL, MSE_PROFILE } = getMseConfig();
+
     return request(`${MSE_URL}/profiles/${MSE_PROFILE}/take`, {
         method: "POST",
         headers: {
@@ -98,6 +126,8 @@ function takeElement(elementUrl) {
 }
 
 function takeOutElement(elementUrl) {
+    const { MSE_URL, MSE_PROFILE } = getMseConfig();
+
     return request(`${MSE_URL}/profiles/${MSE_PROFILE}/out`, {
         method: "POST",
         headers: {

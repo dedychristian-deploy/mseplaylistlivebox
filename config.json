@@ -9,6 +9,9 @@
     "port": 6100
   },
   "playlist": {
-    "playlistid": "{F392284C-11EA-4D58-B47A-42B1BEDA2B1D}"
+    "playlistid": "{16484B15-681F-4A22-8BC9-71EACF401681}"
+  },
+  "director": {
+    "enabled": true
   }
 }

@@ -18,7 +18,7 @@ html,body{width:100%;height:100%;margin:0}body{background:transparent}
             min-width:0;
             min-height:0;
             box-sizing:border-box;
-            animation:boxIn 220ms ease-out both
+            animation:boxIn 500ms ease-out both
         }
 .delete-box {
             position:absolute;
@@ -41,10 +41,8 @@ html,body{width:100%;height:100%;margin:0}body{background:transparent}
         }
         .delete-box:hover{background:#343a41;color:#fff;border-color:#68717b}
 
-@keyframes boxIn {
-            from { opacity:0; transform:scale(.96) }
-            to { opacity:1; transform:scale(1) }
-        }
+@keyframes boxIn { from { opacity:0; } to { opacity:1; } }
+
 
         .box-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;line-height:1.1}
 .box-name{font-size:1em;font-weight:700;letter-spacing:.2px}
@@ -87,13 +85,43 @@ html,body{width:100%;height:100%;margin:0}body{background:transparent}
 }
 </style>
 
-</head><body><div id="layout"></div><script>
+<style id="quick-zoom-final">
+.box{cursor:pointer}
+.live-stream{pointer-events:none!important}
+#quickZoomModal{position:fixed;inset:0;z-index:9999;display:none;padding:5px;box-sizing:border-box;background:rgba(4,8,12,.64);font-family:Arial,sans-serif}
+#quickZoomModal.open{display:block;animation:quickZoomOpen 500ms ease both}
+#quickZoomModal.closing{animation:quickZoomClose 350ms ease both}
+.quick-zoom-dialog{position:relative;width:100%;height:100%;overflow:hidden;background:#05090d;border:1px solid rgba(72,106,132,.55);border-radius:6px;box-shadow:0 12px 38px rgba(0,0,0,.42)}
+.quick-zoom-preview{position:absolute;inset:0;overflow:hidden;background:#000}
+.quick-zoom-stream{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.quick-zoom-label{position:absolute;left:12px;bottom:12px;z-index:4;padding:6px 9px;color:#fff;background:rgba(0,0,0,.68);border-radius:4px;font-size:12px;font-weight:700}
+.quick-zoom-actions{position:absolute;right:12px;bottom:12px;z-index:6;display:flex;gap:7px}
+.quick-zoom-actions button{height:32px;padding:0 15px;border:1px solid rgba(92,108,121,.78);border-radius:5px;background:rgba(24,32,39,.9);color:#dce4ea;font:800 10px Arial;cursor:pointer}
+#quickZoomSend{min-width:116px;background:rgba(40,123,196,.94);border-color:#3b98e8;color:#fff}
+@keyframes quickZoomOpen{from{opacity:0}to{opacity:1}}
+@keyframes quickZoomClose{from{opacity:1}to{opacity:0}}
+</style>
+</head><body><div id="layout"></div>
+<div id="quickZoomModal"><div class="quick-zoom-dialog"><div class="quick-zoom-preview">
+<iframe id="quickZoomStream" class="quick-zoom-stream" allow="autoplay; fullscreen"></iframe>
+<div id="quickZoomLabel" class="quick-zoom-label"></div></div>
+<div class="quick-zoom-actions"><button id="quickZoomCancel" type="button">CANCEL</button><button id="quickZoomSend" type="button">SEND TO VIZ</button></div>
+</div></div><script>
+let selectedZoomInput=null;
+const quickZoomModal=document.getElementById("quickZoomModal"),quickZoomStream=document.getElementById("quickZoomStream"),quickZoomLabel=document.getElementById("quickZoomLabel");
+function openQuickZoom(input){selectedZoomInput=input;quickZoomLabel.textContent=`BOX 01 · LIVE INPUT ${input+1}`;quickZoomStream.src=`http://127.0.0.1:8889/aux${input+1}?autoplay=true&muted=true&controls=false`;quickZoomModal.classList.remove("closing");quickZoomModal.classList.add("open")}
+function closeQuickZoom(){if(!quickZoomModal.classList.contains("open"))return;quickZoomModal.classList.add("closing");setTimeout(()=>{quickZoomModal.classList.remove("open","closing");quickZoomStream.src="about:blank";selectedZoomInput=null},350)}
+document.getElementById("quickZoomCancel").addEventListener("click",closeQuickZoom);
+document.getElementById("quickZoomSend").addEventListener("click",()=>{if(selectedZoomInput===null)return;window.parent.postMessage({action:"quickZoomSendToViz",layoutData:{boxType:0,boxTypeName:"1BOX",boxOrder:[{box:"BOX_01",input:selectedZoomInput}]}},"*");closeQuickZoom()});
+quickZoomModal.addEventListener("click",e=>{if(e.target===quickZoomModal)closeQuickZoom()});
+
 window.addEventListener("message",event=>{
  const data=event.data;if(!data||!Array.isArray(data.boxOrder))return;
  const layout=document.getElementById("layout");layout.innerHTML="";
  data.boxOrder.forEach(item=>{
   const boxName=item.box,input=item.input;
   const box=document.createElement("div");box.className="box";
+                box.addEventListener("dblclick",e=>{e.preventDefault();e.stopPropagation();openQuickZoom(input)});
   box.dataset.box=`BOX_${String(input+1).padStart(2,"0")}`;
   const label = document.createElement("div");
             label.className = "box-label";
@@ -105,6 +133,7 @@ window.addEventListener("message",event=>{
             inputLabel.textContent = `LIVE INPUT ${input + 1}`;
             label.append(boxLabel, inputLabel);
   const del=document.createElement("button");del.className="delete-box";del.textContent="×";
+                del.addEventListener("dblclick",e=>e.stopPropagation());
   del.onclick=()=>window.parent.postMessage({action:"deleteBox",boxName},"*");
   box.append(label,del);layout.appendChild(box);
  });
